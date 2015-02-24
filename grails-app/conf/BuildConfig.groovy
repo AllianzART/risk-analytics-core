@@ -13,8 +13,8 @@ grails.project.dependency.resolution = {
         mavenCentral()
 
         //even though this plugin does not need anything from this repo, it has to be added for the deploy script to check existing plugins
-        mavenRepo "https://repository.intuitive-collaboration.com/nexus/content/repositories/pillarone-public/"
-        mavenRepo "http://repo.spring.io/milestone/" //needed for spring-security-core 2.0-rc2 plugin
+        mavenRepo "http://zh-artisan-test.art-allianz.com:8085/nexus/content/groups/public"
+//        mavenRepo "http://repo.spring.io/milestone/" //needed for spring-security-core 2.0-rc2 plugin
 //        mavenRepo "http://www.gridgainsystems.com/maven2/" //TODO: repository offline..
     }
 
