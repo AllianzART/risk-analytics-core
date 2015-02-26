@@ -59,6 +59,7 @@ grails.project.dependency.resolution = {
         runtime("org.fusesource.jansi:jansi:1.2.1")
         //see http://jira.grails.org/browse/GRAILS-10671
         build "com.lowagie:itext:2.1.7"
+        build "org.apache.maven.wagon:wagon-http:jar:1.0-beta-2"
     }
 }
 
