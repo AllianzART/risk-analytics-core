@@ -63,6 +63,8 @@ grails.project.dependency.resolution = {
     }
 }
 
+grails.project.repos.default = "pillarone"
+
 grails.project.dependency.distribution = {
     String password = ""
     String user = ""
