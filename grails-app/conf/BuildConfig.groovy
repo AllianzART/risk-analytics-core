@@ -10,7 +10,10 @@ grails.project.dependency.resolution = {
     repositories {
         grailsHome()
         mavenLocal()
-        mavenRepo "http://zh-artisan-test.art-allianz.com:8085/nexus/content/groups/public"
+
+        mavenRepo (name:"zh-artisan-test" , url:"http://zh-artisan-test.art-allianz.com:8085/nexus/content/groups/public/") {
+            updatePolicy System.getProperty('snapshotUpdatePolicy') ?: 'daily'
+        }
 
         mavenCentral()
         grailsCentral()
