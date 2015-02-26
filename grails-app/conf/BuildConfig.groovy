@@ -70,7 +70,7 @@ grails.project.dependency.distribution = {
     try {
         Properties properties = new Properties()
         String version = new GroovyClassLoader().loadClass('RiskAnalyticsCoreGrailsPlugin').newInstance().version
-        println "trying to read ${userHome}/deployInfo.properties"
+        println "reading deploy settings from ${userHome}/deployInfo.properties"
 
         properties.load(new File("${userHome}/deployInfo.properties").newInputStream())
         user = properties.get("user")
