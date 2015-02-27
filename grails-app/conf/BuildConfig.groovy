@@ -15,12 +15,6 @@ grails.project.dependency.resolution = {
             updatePolicy System.getProperty('snapshotUpdatePolicy') ?: 'daily'
         }
 
-        mavenCentral()
-        grailsCentral()
-
-        //even though this plugin does not need anything from this repo, it has to be added for the deploy script to check existing plugins
-//        mavenRepo "http://repo.spring.io/milestone/" //needed for spring-security-core 2.0-rc2 plugin
-//        mavenRepo "http://www.gridgainsystems.com/maven2/" //TODO: repository offline..
     }
 
     plugins {
