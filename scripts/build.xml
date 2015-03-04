@@ -94,7 +94,7 @@
         </exec>
     </target>
 
-    <target name="compile" depends="init" description="--> Compiles a Grails application">
+    <target name="compile" depends="init,refresh-dependencies" description="--> Compiles a Grails application">
         <exec executable="${grails}" failonerror="true" resolveexecutable="true">
             <arg value="compile"/>
             <arg value="--non-interactive"/>
