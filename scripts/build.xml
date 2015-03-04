@@ -84,6 +84,16 @@
     </target>
 
 
+    <target name="refresh-dependencies" depends="init" description="--> refrehes all the dependencies">
+        <exec executable="${grails}" failonerror="true" resolveexecutable="true">
+            <arg value="refresh-dependencies"/>
+            <arg value="--non-interactive"/>
+            <arg value="--verbose"/>
+            <env key="GRAILS_HOME" value="${GRAILS_HOME}"/>
+            <env key="JAVA_OPTS" value="${GRAILS_JVM_OPTS}"/>
+        </exec>
+    </target>
+
     <target name="compile" depends="init" description="--> Compiles a Grails application">
         <exec executable="${grails}" failonerror="true" resolveexecutable="true">
             <arg value="compile"/>
