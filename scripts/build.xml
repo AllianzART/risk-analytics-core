@@ -46,6 +46,7 @@
         <exec executable="${grails}" failonerror="true" resolveexecutable="true">
             <arg value="clean"/>
             <arg value="--non-interactive"/>
+            <arg value="--stacktrace"/>
             <env key="GRAILS_HOME" value="${GRAILS_HOME}"/>
             <env key="JAVA_OPTS" value="${GRAILS_JVM_OPTS}"/>
         </exec>
