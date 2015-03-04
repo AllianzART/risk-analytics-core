@@ -127,8 +127,7 @@
         </copy>
     </target>
 
-    <target name="release-plugin" depends="clean, compile"
-            description="Releases the plugin in the configured repository.">
+    <target name="release-plugin" description="Releases the plugin in the configured repository.">
         <antcall target="_beforeReleasePlugin"/>
         <exec executable="${grails}" failonerror="true" resolveexecutable="true">
             <arg value="--non-interactive"/>
