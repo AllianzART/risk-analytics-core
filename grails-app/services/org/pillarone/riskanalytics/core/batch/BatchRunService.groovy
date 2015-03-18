@@ -13,6 +13,15 @@ import java.text.SimpleDateFormat
 
 class BatchRunService {
 
+    static private final String defaultBatchSimPrefix = 'batch'
+    // Each simulation name will begin with this prefix.. by default just 'batch'
+    // But sometimes its useful to use something else eg for Version Migration batches where
+    // sim names will appear in reports so it would help to distinguish comparison vs reference sims
+    //
+    private static String getBatchPrefix(){
+        return defaultBatchSimPrefix;
+    }
+
     SimulationQueueService simulationQueueService
     SimulationProfileService simulationProfileService
     SpringSecurityService springSecurityService
@@ -85,7 +94,7 @@ class BatchRunService {
     private
     static Simulation createSimulation(Parameterization parameterization, SimulationProfile simulationProfile, Batch batch = null) {
         parameterization.load()
-        String name = "batch " + parameterization.name + " " + new SimpleDateFormat(BATCH_SIMNAME_STAMP_FORMAT).format(new Date())
+        String name = getBatchPrefix() + " " +  parameterization.name + " " + new SimpleDateFormat(BATCH_SIMNAME_STAMP_FORMAT).format(new Date())
         Simulation simulation = new Simulation(name)
         simulation.modelClass = parameterization.modelClass
         simulation.parameterization = parameterization
