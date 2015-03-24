@@ -1,5 +1,5 @@
 //Use a custom plugins dir, because different branches use different plugin versions
-grails.project.plugins.dir = "../local-plugins/RiskAnalyticsCore-master"
+grails.project.plugins.dir = "../local-plugins/RiskAnalyticsCore-AR-111"
 
 grails.project.dependency.resolver = "maven"
 
@@ -11,13 +11,10 @@ grails.project.dependency.resolution = {
         grailsHome()
         mavenLocal()
 
-        mavenRepo (name:"pillarone" , url:"http://zh-artisan-test.art-allianz.com:8085/nexus/content/groups/public/") {
+        mavenRepo (name:"zh-artisan-test" , url:"http://zh-artisan-test.art-allianz.com:8085/nexus/content/groups/public/") {
             updatePolicy System.getProperty('snapshotUpdatePolicy') ?: 'daily'
         }
 
-        mavenCentral()
-        grailsCentral()
-        mavenRepo 'http://repo.spring.io/milestone'
     }
 
     plugins {
@@ -35,7 +32,7 @@ grails.project.dependency.resolution = {
     }
 
     dependencies {
-        compile('com.google.guava:guava:18.0')
+        compile('com.google.guava:guava:17.0')
         runtime 'net.sf.jasperreports:jasperreports:4.0.1', {
             excludes "xml-apis", "commons-collections", "jdtcore"
         }
@@ -43,14 +40,13 @@ grails.project.dependency.resolution = {
         compile('org.apache.poi:poi-ooxml:3.9') {
             exclude "xmlbeans"
         }
-        compile("org.apache.xmlbeans:xmlbeans:2.3.0")
+        compile("org.apache.xmlbeans:xmlbeans:2.3.0-without-w3c")
 
-        compile('ca.umontreal.iro:ssj:2.5') {
-            exclude "dsol:dsol-xml"
-        }
-        compile 'commons-cli:commons-cli:1.2'
-
-        compile 'joda-time:joda-time:2.8.1'
+        compile 'joda-time:joda-time:2.3'
+        //gridgain & deps
+//        compile("org.gridgain:gridgain:3.6.0c") {
+//            transitive = false
+//        }
         runtime("javax.mail:mail:1.4.4")
         runtime("net.sf.jtidy:jtidy:r938")
 //        runtime("net.sf.cron4j:cron4j:2.2.5")
@@ -61,7 +57,6 @@ grails.project.dependency.resolution = {
         //see http://jira.grails.org/browse/GRAILS-10671
         build "com.lowagie:itext:2.1.7"
         //build "org.apache.maven.wagon:wagon-http:jar:1.0-beta-2"
-        test 'hsqldb:hsqldb:1.8.0.10'
     }
 }
 
