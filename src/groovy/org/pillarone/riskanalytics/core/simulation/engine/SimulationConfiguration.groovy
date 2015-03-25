@@ -162,7 +162,7 @@ public class SimulationConfiguration implements Serializable, Cloneable {
         return ModelHelper.pathsExtendedWithPeriod(splitByInceptionDatePaths, periodLabels.toList() + ["From Past", "From Future"]) //AR-111
     }
 
-    /* fugly */
+    /* fugly */ /*I do certainly agree. */
 
     private Set<String> hardcodedTypeSplitEnumRegistry() {
         return ["ncb", "premium", "loss", "term"]
