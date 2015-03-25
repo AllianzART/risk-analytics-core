@@ -113,8 +113,6 @@ public class SimulationConfiguration implements Serializable, Cloneable {
             Set paths = ModelHelper.getAllPossibleOutputPaths(model, drillDownPaths)
             Set<String> inceptionPeriodPaths = getSplitByInceptionDateDrillDownPaths(drillDownCollectors, model)
             paths.addAll(inceptionPeriodPaths)
-            Set<String> pastVsFuturePaths = getSplitByPastVsFutureDrillDownPaths(drillDownCollectors, model)
-            paths.addAll(pastVsFuturePaths)
             Set<String> typeDrillDownPaths = getPotentialTypeDrillDowns(drillDownCollectors)
             paths.addAll(typeDrillDownPaths)
 
@@ -161,20 +159,11 @@ public class SimulationConfiguration implements Serializable, Cloneable {
         List<String> splitByInceptionDatePaths = getDrillDownPaths(collectors, DrillDownMode.BY_PERIOD)
         Set<String> periodLabels = model.periodLabelsBeforeProjectionStart()
         periodLabels.addAll PeriodLabelsUtil.getPeriodLabels(simulation, model)
-        return ModelHelper.pathsExtendedWithPeriod(splitByInceptionDatePaths, periodLabels.toList()) //AR-111
+        return ModelHelper.pathsExtendedWithPeriod(splitByInceptionDatePaths, periodLabels.toList() + ["From Past", "From Future"]) //AR-111
     }
 
-    /* fugly */ /*I do certainly agree. */
+    /* fugly */
 
-    /* AR-111 - In a way this duplicates the ugly thing above. Should think about refactoring */
-    private Set<String> getSplitByPastVsFutureDrillDownPaths(List<PacketCollector> collectors, Model model) {
-        List<String> splitByPastVsFuturePaths = getDrillDownPaths(collectors, DrillDownMode.BY_UPDATEDATE)
-        //Set<String> periodLabels = model.periodLabelsBeforeProjectionStart()   //not needed. Might need something similar
-        //periodLabels.addAll PeriodLabelsUtil.getPeriodLabels(simulation, model)//if we want to include the update date in the paths...
-        return ModelHelper.pathsExtendedWithPeriod(splitByPastVsFuturePaths, ["From Past", "From Future"]) //AR-111
-    }
-
-    /*AR-111 end*/
     private Set<String> hardcodedTypeSplitEnumRegistry() {
         return ["ncb", "premium", "loss", "term"]
     }
