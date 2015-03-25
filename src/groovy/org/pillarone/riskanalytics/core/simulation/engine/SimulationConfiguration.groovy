@@ -159,7 +159,7 @@ public class SimulationConfiguration implements Serializable, Cloneable {
         List<String> splitByInceptionDatePaths = getDrillDownPaths(collectors, DrillDownMode.BY_PERIOD)
         Set<String> periodLabels = model.periodLabelsBeforeProjectionStart()
         periodLabels.addAll PeriodLabelsUtil.getPeriodLabels(simulation, model)
-        return ModelHelper.pathsExtendedWithPeriod(splitByInceptionDatePaths, periodLabels.toList())
+        return ModelHelper.pathsExtendedWithPeriod(splitByInceptionDatePaths, periodLabels.toList() + ["From Past", "From Future"]) //AR-111
     }
 
     /* fugly */
