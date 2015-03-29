@@ -93,7 +93,7 @@ public class SimulationTask extends GridTaskAdapter<SimulationConfiguration, Obj
 
             List<SimulationBlock> simulationBlocks = generateBlocks(SIMULATION_BLOCK_SIZE, simulationConfiguration.getSimulation().getNumberOfIterations());
 
-            LOG.info("Number of generated blocks: " + simulationBlocks.size());
+            LOG.info("Generated " + simulationBlocks.size() + " blocks; Sim=" + simulationConfiguration.getSimulation().getName());
             List<SimulationJob> jobs = new ArrayList<SimulationJob>();
             List<SimulationConfiguration> configurations = new ArrayList<SimulationConfiguration>(cpuCount);
 

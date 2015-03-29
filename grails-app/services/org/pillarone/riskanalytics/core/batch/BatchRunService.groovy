@@ -1,6 +1,8 @@
 package org.pillarone.riskanalytics.core.batch
 
 import grails.plugin.springsecurity.SpringSecurityService
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
 import org.pillarone.riskanalytics.core.output.SimulationRun
 import org.pillarone.riskanalytics.core.simulation.engine.SimulationConfiguration
 import org.pillarone.riskanalytics.core.simulation.engine.SimulationQueueService
@@ -12,6 +14,8 @@ import org.pillarone.riskanalytics.core.user.UserManagement
 import java.text.SimpleDateFormat
 
 class BatchRunService {
+
+    private static final Log log = LogFactory.getLog(BatchRunService)
 
     static private final String defaultBatchSimPrefix = 'batch'
     // Each simulation name will begin with this prefix.. by default just 'batch'
@@ -32,7 +36,8 @@ class BatchRunService {
     void runBatch(Batch batch) {
         batch.load()
         if (!batch.executed) {
-            offer(createSimulations(batch))
+            log.info("Run batch: $batch")
+            offer(createSimulations(batch)) // bottleneck - loads each p14n first
             batch.executed = true
             batch.save()
         }
@@ -71,6 +76,7 @@ class BatchRunService {
     }
 
     private void start(SimulationConfiguration simulationConfiguration) {
+        log.info("Queuing sim: ${simulationConfiguration.simulation.name} (batch=${simulationConfiguration.simulation.batch.name})")
         simulationQueueService.offer(simulationConfiguration, 5)
     }
 

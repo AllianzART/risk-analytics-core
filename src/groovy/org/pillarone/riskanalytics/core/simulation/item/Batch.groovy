@@ -1,11 +1,14 @@
 package org.pillarone.riskanalytics.core.simulation.item
 
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
 import org.pillarone.riskanalytics.core.BatchRun
 import org.pillarone.riskanalytics.core.ParameterizationDAO
 import org.pillarone.riskanalytics.core.SimulationProfileDAO
 import org.pillarone.riskanalytics.core.output.SimulationRun
 
 class Batch extends ModellingItem {
+    private static final Log log = LogFactory.getLog(Batch)
 
     List<Parameterization> parameterizations = []
     String comment
@@ -74,6 +77,11 @@ class Batch extends ModellingItem {
     }
 
     @Override
+    void logDeleteSuccess() {
+        log.info("DELETED  ${toString()} created: $creationDate by ${creator.username}")
+    }
+
+    @Override
     protected Object deleteDaoImpl(Object dao) {
         BatchRun batchRun = dao as BatchRun
         SimulationRun.withBatchRunId(batchRun.id).list().each {
@@ -100,5 +108,12 @@ class Batch extends ModellingItem {
             simulation.load(false) //PMO-2802 Don't fully load sims too
             simulation
         }
+    }
+
+    String toString(){
+        final String name = getName()
+        int count = parameterizations.size()
+        final String profile = simulationProfileName?:'null'
+        "'$name' ($count models, profile='$profile', comment='$comment')"
     }
 }
