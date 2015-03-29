@@ -21,7 +21,7 @@ class PacketAggregatorRegistry {
         IPacketAggregator existing = aggregatorMap.get(packetClass)
         if(existing != null) {
             if(existing.class == aggregator.class) {
-                LOG.warn("Aggregator for $packetClass.name already registered.")
+                LOG.info("Aggregator for $packetClass.name already registered.")
             } else {
                 throw new IllegalStateException("Already an aggregator registered for ${packetClass.name}: ${existing.class.name}")
             }
