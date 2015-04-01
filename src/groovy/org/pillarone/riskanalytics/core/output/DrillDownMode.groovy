@@ -23,4 +23,9 @@ public enum DrillDownMode {
         drillDownModes.add(DrillDownMode.BY_TYPE)
         return drillDownModes
     }
+    static List<DrillDownMode> getDrillDownModesByPastVsFuture() {
+        List<DrillDownMode> drillDownModes = new ArrayList<DrillDownMode>()
+        drillDownModes.add(DrillDownMode.BY_PAST_VS_FUTURE)
+        return drillDownModes
+    }
 }
