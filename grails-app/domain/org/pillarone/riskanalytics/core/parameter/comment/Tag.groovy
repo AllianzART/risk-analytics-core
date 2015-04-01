@@ -5,7 +5,8 @@ import org.pillarone.riskanalytics.core.simulation.item.parameter.comment.EnumTa
 class Tag {
 
     static final String LOCKED_TAG = 'LOCKED'
-    static String qtrTagMatcherRegex = System.getProperty("qtrTagMatcherRegex", "^Q[1234] 20[0-9][0-9]\$" )
+    static String azReTagMatcherRegex = System.getProperty("qtrTagMatcherRegex", "^Allianz Re\$" )
+    static String qtrTagMatcherRegex = System.getProperty("qtrTagMatcherRegex", "^1[1-9]Q[1234]\$" )
 
     String name
     EnumTagType tagType = EnumTagType.COMMENT
@@ -27,6 +28,10 @@ class Tag {
 
     int hashCode() {
         return name.hashCode()
+    }
+
+    boolean isAZReTag(){
+        return name.matches(azReTagMatcherRegex)
     }
 
     boolean isQuarterTag(){
