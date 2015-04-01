@@ -3,7 +3,8 @@ package org.pillarone.riskanalytics.core.output
 public enum DrillDownMode {
     BY_SOURCE,
     BY_PERIOD,
-    BY_TYPE
+    BY_TYPE,
+    BY_PAST_VS_FUTURE
 
     static List<DrillDownMode> getDrillDownModesBySource() {
         List<DrillDownMode> drillDownModes = new ArrayList<DrillDownMode>()
