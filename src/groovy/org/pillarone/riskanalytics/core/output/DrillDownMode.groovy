@@ -4,7 +4,7 @@ public enum DrillDownMode {
     BY_SOURCE,
     BY_PERIOD,
     BY_TYPE,
-    BY_PAST_VS_FUTURE
+    BY_UPDATEDATE
 
     static List<DrillDownMode> getDrillDownModesBySource() {
         List<DrillDownMode> drillDownModes = new ArrayList<DrillDownMode>()
@@ -23,9 +23,9 @@ public enum DrillDownMode {
         drillDownModes.add(DrillDownMode.BY_TYPE)
         return drillDownModes
     }
-    static List<DrillDownMode> getDrillDownModesByPastVsFuture() {
+    static List<DrillDownMode> getDrillDownModesByUpdateDate() {
         List<DrillDownMode> drillDownModes = new ArrayList<DrillDownMode>()
-        drillDownModes.add(DrillDownMode.BY_PAST_VS_FUTURE)
+        drillDownModes.add(DrillDownMode.BY_UPDATEDATE)
         return drillDownModes
     }
 }
