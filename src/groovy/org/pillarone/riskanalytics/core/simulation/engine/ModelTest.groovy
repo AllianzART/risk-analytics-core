@@ -131,7 +131,8 @@ abstract class ModelTest {
                 run.addParameter(parameterHolder)
             }
 
-            run.addParameter(ParameterHolderFactory.getHolder("runtimeUpdateDate",0,new DateTime(2009, 1, 1, 0, 0, 0, 0))) //AR-111 - dummy update date
+//No idea why line below was added - it breaks art-models test Artisan2ART953ModelTests, so I'm commenting it back out FR 2015-04-16
+//            run.addParameter(ParameterHolderFactory.getHolder("runtimeUpdateDate",0,new DateTime(2009, 1, 1, 0, 0, 0, 0))) //AR-111 - dummy update date
 
 
             assertNotNull run.save()
