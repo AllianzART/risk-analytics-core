@@ -100,7 +100,7 @@ class BatchRunService {
     private
     static Simulation createSimulation(Parameterization parameterization, SimulationProfile simulationProfile, Batch batch = null) {
         parameterization.load()
-        String name = getBatchPrefix() + " " +  parameterization.name + " " + new SimpleDateFormat(BATCH_SIMNAME_STAMP_FORMAT).format(new Date())
+        String name = getBatchPrefix() + " " +  parameterization.nameAndVersion + " " + new SimpleDateFormat(BATCH_SIMNAME_STAMP_FORMAT).format(new Date())
         Simulation simulation = new Simulation(name)
         simulation.modelClass = parameterization.modelClass
         simulation.parameterization = parameterization
