@@ -1,5 +1,5 @@
 //Use a custom plugins dir, because different branches use different plugin versions
-grails.project.plugins.dir = "../local-plugins/RiskAnalyticsCore-1.9.x"
+grails.project.plugins.dir = "../local-plugins/RiskAnalyticsCore-master"
 
 grails.project.dependency.resolver = "maven"
 
@@ -15,6 +15,9 @@ grails.project.dependency.resolution = {
             updatePolicy System.getProperty('snapshotUpdatePolicy') ?: 'daily'
         }
 
+        mavenCentral()
+        grailsCentral()
+        mavenRepo 'http://repo.spring.io/milestone'
     }
 
     plugins {
@@ -40,7 +43,7 @@ grails.project.dependency.resolution = {
         compile('org.apache.poi:poi-ooxml:3.9') {
             exclude "xmlbeans"
         }
-        compile("org.apache.xmlbeans:xmlbeans:2.3.0-without-w3c")
+        compile("org.apache.xmlbeans:xmlbeans:2.3.0")
 
         compile 'joda-time:joda-time:2.3'
         //gridgain & deps
