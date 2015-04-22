@@ -77,10 +77,16 @@ class PeriodMatrixMultiDimensionalParameter extends AbstractMultiDimensionalPara
         }
 
         if (row < getTitleRowCount()) {
+            if(titles.empty){
+                return ""
+            }
             List titleRow = titles.get(row)
             return titleRow.isEmpty() ? "" : titleRow.get(column - getTitleColumnCount())
         }
         if (column < getTitleColumnCount()) {
+            if(titles.empty){
+                return ""
+            }
             List titleColumn = titles.get(column)
             return titleColumn.isEmpty() ? "" : titleColumn.get(row - getTitleRowCount())
         }
