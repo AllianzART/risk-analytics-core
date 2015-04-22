@@ -1,6 +1,5 @@
 package org.pillarone.riskanalytics.core.simulation.engine
-
-import org.gridgain.grid.Grid
+import org.apache.ignite.Ignite
 import org.gridgain.grid.GridTaskFuture
 import org.pillarone.riskanalytics.core.queue.AbstractQueueService
 import org.pillarone.riskanalytics.core.queue.IQueueTaskFuture
@@ -8,7 +7,7 @@ import org.pillarone.riskanalytics.core.simulation.SimulationState
 
 class SimulationQueueService extends AbstractQueueService<SimulationConfiguration, SimulationQueueEntry> {
 
-    Grid grid
+    Ignite ignite
 
     @Override
     SimulationQueueEntry createQueueEntry(SimulationConfiguration configuration, int priority) {
@@ -32,7 +31,10 @@ class SimulationQueueService extends AbstractQueueService<SimulationConfiguratio
     @Override
     IQueueTaskFuture doWork(SimulationQueueEntry entry, int priority) {
         SimulationQueueTaskContext context = entry.context
-        GridTaskFuture future = grid.execute(context.simulationTask, context.simulationTask.simulationConfiguration)
+
+       Object execute = ignite.compute().execute(context.simulationTask, context.simulationTask.simulationConfiguration)
+
+        GridTaskFuture future = execute
         new SimulationQueueTaskFuture(future, context)
     }
 

@@ -1,19 +1,19 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid;
 
 import grails.util.Holders;
-import org.gridgain.grid.Grid;
-import org.gridgain.grid.GridFactory;
+import org.apache.ignite.Ignite;
+import org.apache.ignite.Ignition;
 import org.pillarone.riskanalytics.core.FileConstants;
 
 import java.io.File;
 
 public class GridHelper {
 
-    public static Grid getGrid() {
+    public static Ignite getGrid() {
         try {
-            return Holders.getGrailsApplication().getMainContext().getBean("grid", Grid.class);
+            return Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class);
         } catch (Exception e) {
-            return GridFactory.grid();
+            return Ignition.ignite();
         }
     }
 

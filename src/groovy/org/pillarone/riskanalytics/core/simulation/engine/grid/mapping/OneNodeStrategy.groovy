@@ -1,15 +1,14 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid.mapping
-
 import groovy.transform.CompileStatic
-import org.gridgain.grid.GridNode
-import org.gridgain.grid.GridRichNode
+import org.apache.ignite.cluster.ClusterNode
+
 @CompileStatic
 class OneNodeStrategy extends AbstractNodeMappingStrategy {
 
     @Override
-    Set<GridNode> filterNodes(List<GridNode> allNodes) {
-        Set<GridNode> result = new HashSet<GridNode>()
-        GridRichNode localNode = grid.localNode()
+    Set<ClusterNode> filterNodes(List<ClusterNode> allNodes) {
+        Set<ClusterNode> result = new HashSet<ClusterNode>()
+        ClusterNode localNode = grid.cluster().localNode()
         if (allNodes.contains(localNode)) {
             result.add(localNode)
         }

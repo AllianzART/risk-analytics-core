@@ -1,9 +1,9 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid
-
 import grails.util.Holders
 import models.core.CoreModel
+import org.apache.ignite.cluster.ClusterNode
+import org.apache.ignite.spi.discovery.tcp.internal.TcpDiscoveryNode
 import org.gridgain.grid.GridNode
-import org.gridgain.grid.kernal.GridRichNodeImpl
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -186,19 +186,19 @@ class SimulationTaskTests {
 class TestNodeStrategy extends AbstractNodeMappingStrategy {
 
     @Override
-    Set<GridNode> filterNodes(List<GridNode> allNodes) {
+    Set<ClusterNode> filterNodes(List<ClusterNode> allNodes) {
         return allNodes
     }
 
     @Override
-    int getTotalCpuCount(List<GridNode> usableNodes) {
-        return (usableNodes as List<TestGridNode>)*.cpuCount.sum()
+    int getTotalCpuCount(List<ClusterNode> usableNodes) {
+        return (int)(usableNodes as List<TestGridNode>)*.cpuCount.sum()
     }
 
 
 }
 
-class TestGridNode extends GridRichNodeImpl {
+class TestGridNode extends TcpDiscoveryNode {
 
     int cpuCount
 

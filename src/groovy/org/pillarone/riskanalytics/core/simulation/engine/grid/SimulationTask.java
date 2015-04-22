@@ -1,10 +1,18 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid;
 
 import grails.plugin.springsecurity.SpringSecurityUtils;
+import grails.util.Holders;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteEvents;
+import org.apache.ignite.IgniteException;
+import org.apache.ignite.cluster.ClusterNode;
+import org.apache.ignite.compute.ComputeJob;
+import org.apache.ignite.compute.ComputeJobResult;
+import org.apache.ignite.compute.ComputeTaskAdapter;
 import org.apache.log4j.MDC;
-import org.gridgain.grid.*;
+import org.jetbrains.annotations.Nullable;
 import org.joda.time.DateTime;
 import org.pillarone.riskanalytics.core.cli.ImportStructureInTransaction;
 import org.pillarone.riskanalytics.core.components.DataSourceDefinition;
@@ -29,7 +37,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public class SimulationTask extends GridTaskAdapter<SimulationConfiguration, Object> {
+public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, Object> {
 
     private static Log LOG = LogFactory.getLog(SimulationTask.class);
 
@@ -53,18 +61,18 @@ public class SimulationTask extends GridTaskAdapter<SimulationConfiguration, Obj
     private ResultTransferListener resultTransferListener;
     private List<UUID> jobIds = new ArrayList<UUID>();
 
-    public final Map<? extends GridJob, GridNode> map(List<GridNode> subgrid,
-                                                      SimulationConfiguration simulationConfiguration)
-            throws GridException {
+    @Nullable
+    @Override
+    public Map<? extends ComputeJob, ClusterNode> map(List<ClusterNode> subgrid, SimulationConfiguration simulationConfiguration) throws IgniteException {
         try {
             this.simulationConfiguration = simulationConfiguration;
             initMDCForLoggingAndLogInUser();
             INodeMappingStrategy strategy = AbstractNodeMappingStrategy.getStrategy();
-            List<GridNode> nodes = new ArrayList<GridNode>(strategy.filterNodes(subgrid));
+            List<ClusterNode> nodes = new ArrayList<ClusterNode>(strategy.filterNodes(subgrid));
             if (nodes.isEmpty()) {
                 throw new IllegalStateException("No grid gain nodes found! Contact support.");
             }
-            Map<SimulationJob, GridNode> jobsToNodes = new HashMap<SimulationJob, GridNode>(nodes.size());
+            Map<SimulationJob, ClusterNode> jobsToNodes = new HashMap<SimulationJob, ClusterNode>(nodes.size());
             HashMap<Integer, List<SimulationJob>> jobCountPerGrid = new HashMap<Integer, List<SimulationJob>>();
 
             if (!cancelled) {
@@ -88,7 +96,8 @@ public class SimulationTask extends GridTaskAdapter<SimulationConfiguration, Obj
 
             resultTransferListener = new ResultTransferListener(this);
 
-            Grid grid = GridHelper.getGrid();
+//            Grid grid = GridHelper.getGrid();
+            Ignite grid = Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class);
             int cpuCount = strategy.getTotalCpuCount(nodes);
 
             List<SimulationBlock> simulationBlocks = generateBlocks(SIMULATION_BLOCK_SIZE, simulationConfiguration.getSimulation().getNumberOfIterations());
@@ -114,7 +123,7 @@ public class SimulationTask extends GridTaskAdapter<SimulationConfiguration, Obj
             }
             for (int i = 0; i < Math.min(cpuCount, simulationBlocks.size()); i++) {
                 UUID jobId = UUID.randomUUID();
-                SimulationJob job = new SimulationJob(configurations.get(i), jobId, grid.localNode().id());
+                SimulationJob job = new SimulationJob(configurations.get(i), jobId, grid.cluster().localNode().id());
                 job.setAggregatorMap(PacketAggregatorRegistry.getAllAggregators());
                 job.setLoadedResources(allResources);
                 jobIds.add(jobId);
@@ -124,7 +133,10 @@ public class SimulationTask extends GridTaskAdapter<SimulationConfiguration, Obj
 
             resultWriter = new ResultWriter(simulationConfiguration.getSimulation().getId());
             //grid.addMessageListener(this);
-            grid.listen(resultTransferListener);
+
+            IgniteEvents events = grid.events();
+
+//            grid.listen(resultTransferListener);
 
             if (!cancelled) {
                 setSimulationState(SimulationState.RUNNING);
@@ -170,15 +182,16 @@ public class SimulationTask extends GridTaskAdapter<SimulationConfiguration, Obj
         MDC.put("simulation", simulationConfiguration.getSimulation().getParameterization().getNameAndVersion());
     }
 
-    @SuppressWarnings({"ThrowableInstanceNeverThrown"})
-    public Object reduce(List<GridJobResult> gridJobResults) {
+    @Nullable
+    @Override
+    public Object reduce(List<ComputeJobResult> gridJobResults) throws IgniteException {
         try {
             initMDCForLoggingAndLogInUser();
             int totalMessageCount = 0;
             int periodCount = 1;
             int completedIterations = 0;
             boolean error = false;
-            for (GridJobResult res : gridJobResults) {
+            for (ComputeJobResult res : gridJobResults) {
                 JobResult jobResult = res.getData();
                 periodCount = jobResult.getNumberOfSimulatedPeriods();
                 totalMessageCount += jobResult.getTotalMessagesSent();
@@ -251,6 +264,7 @@ public class SimulationTask extends GridTaskAdapter<SimulationConfiguration, Obj
             LOG.error("Error reducing simulation task.", e);
             throw new RuntimeException(e);
         }
+
     }
 
     public synchronized void onMessage(Object serializable) {

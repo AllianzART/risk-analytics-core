@@ -15,6 +15,8 @@ grails.project.dependency.resolution = {
             updatePolicy System.getProperty('snapshotUpdatePolicy') ?: 'daily'
         }
 
+        mavenRepo 'http://www.gridgainsystems.com/nexus/content/repositories/external'
+
         mavenCentral()
         grailsCentral()
         mavenRepo 'http://repo.spring.io/milestone'
@@ -35,6 +37,16 @@ grails.project.dependency.resolution = {
     }
 
     dependencies {
+        compile 'org.apache.ignite:ignite-core:1.0.2'  , {
+            excludes 'spring-aop', 'spring-beans','spring-core' ,'spring-context','spring-expression'
+        }
+        compile 'org.apache.ignite:ignite-spring:1.0.2' , {
+            excludes 'spring-aop', 'spring-beans','spring-core' ,'spring-context','spring-expression'
+        }
+//        compile 'org.apache.ignite:ignite-indexing:1.0.2'  , {
+//            excludes 'spring-aop', 'spring-beans','spring-core' ,'spring-context','spring-expression'
+//        }
+
         compile('com.google.guava:guava:18.0')
         runtime 'net.sf.jasperreports:jasperreports:4.0.1', {
             excludes "xml-apis", "commons-collections", "jdtcore"
