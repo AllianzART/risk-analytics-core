@@ -43,7 +43,7 @@ class PeriodMatrixMultiDimensionalParameter extends AbstractMultiDimensionalPara
             }
         }
 
-        if (validValues.size() < componentList.size()) {
+        if (componentList && validValues.size() < componentList.size()) {
             updateTable(getMaxPeriod(), validValues)
         }
     }
@@ -53,6 +53,9 @@ class PeriodMatrixMultiDimensionalParameter extends AbstractMultiDimensionalPara
     }
 
     int getMaxPeriod() {
+        if(!titles){
+            return 0
+        }
         return titles[1].isEmpty() ? 0 : titles[1].collect { Integer.parseInt(it.toString()) }.max()
     }
 
@@ -77,14 +80,14 @@ class PeriodMatrixMultiDimensionalParameter extends AbstractMultiDimensionalPara
         }
 
         if (row < getTitleRowCount()) {
-            if(titles.empty){
+            if(!titles || titles.empty){
                 return ""
             }
             List titleRow = titles.get(row)
             return titleRow.isEmpty() ? "" : titleRow.get(column - getTitleColumnCount())
         }
         if (column < getTitleColumnCount()) {
-            if(titles.empty){
+            if(!titles || titles.empty){
                 return ""
             }
             List titleColumn = titles.get(column)
