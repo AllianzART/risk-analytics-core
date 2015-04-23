@@ -1,9 +1,9 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid
+
 import grails.util.Holders
 import models.core.CoreModel
 import org.apache.ignite.cluster.ClusterNode
 import org.apache.ignite.spi.discovery.tcp.internal.TcpDiscoveryNode
-import org.gridgain.grid.GridNode
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -42,7 +42,7 @@ class SimulationTaskTests {
 
         //tests will have to be adjusted for other values
         assertEquals 1000, SimulationTask.SIMULATION_BLOCK_SIZE
-        List<GridNode> mockNodes = new ArrayList<GridNode>();
+        List<ClusterNode> mockNodes = new ArrayList<ClusterNode>();
         mockNodes.add(new TestGridNode(1));
 
         Collection<SimulationJob> jobs = simulationTask.map(mockNodes, configuration).keySet() as Collection<SimulationJob>;
@@ -69,7 +69,7 @@ class SimulationTaskTests {
         //tests will have to be adjusted for other values
         assertEquals 1000, SimulationTask.SIMULATION_BLOCK_SIZE
 
-        List<GridNode> mockNodes = new ArrayList<GridNode>();
+        List<ClusterNode> mockNodes = new ArrayList<ClusterNode>();
         mockNodes.add(new TestGridNode(1));
 
         Collection<SimulationJob> jobs = simulationTask.map(mockNodes, configuration).keySet() as Collection<SimulationJob>;
@@ -95,7 +95,7 @@ class SimulationTaskTests {
         //tests will have to be adjusted for other values
         assertEquals 1000, SimulationTask.SIMULATION_BLOCK_SIZE
 
-        List<GridNode> mockNodes = new ArrayList<GridNode>();
+        List<ClusterNode> mockNodes = new ArrayList<ClusterNode>();
         mockNodes.add(new TestGridNode(1));
 
         Collection<SimulationJob> jobs = simulationTask.map(mockNodes, configuration).keySet() as Collection<SimulationJob>;
@@ -134,7 +134,7 @@ class SimulationTaskTests {
         //tests will have to be adjusted for other values
         assertEquals 1000, SimulationTask.SIMULATION_BLOCK_SIZE
 
-        List<GridNode> mockNodes = new ArrayList<GridNode>();
+        List<ClusterNode> mockNodes = new ArrayList<ClusterNode>();
         mockNodes.add(new TestGridNode(2));
 
         Collection<SimulationJob> jobs = simulationTask.map(mockNodes, configuration).keySet() as Collection<SimulationJob>;
@@ -176,34 +176,44 @@ class SimulationTaskTests {
         simulation.parameterization = new Parameterization("test")
         simulation.template = new ResultConfiguration('heinz', CoreModel)
         simulation.periodCount = 1
-        SimulationConfiguration configuration = new SimulationConfiguration(simulation, null)
+        SimulationConfiguration configuration = new SimulationConfiguration(simulation, (String) null)
         assertNull simulation.start
         assertNull simulation.end
         return configuration
     }
 }
-
 class TestNodeStrategy extends AbstractNodeMappingStrategy {
 
     @Override
     Set<ClusterNode> filterNodes(List<ClusterNode> allNodes) {
-        return allNodes
+        Set<ClusterNode> set = new HashSet<>()
+        set.addAll(allNodes)
+        return set;
     }
 
     @Override
     int getTotalCpuCount(List<ClusterNode> usableNodes) {
-        return (int)(usableNodes as List<TestGridNode>)*.cpuCount.sum()
+        return (int) (usableNodes as List<TestGridNode>)*.cpuCount.sum()
     }
 
 
 }
 
 class TestGridNode extends TcpDiscoveryNode {
-
     int cpuCount
 
     TestGridNode(int cpuCount) {
         this.cpuCount = cpuCount
+    }
+
+    @Override
+    boolean equals(Object o) {
+        return o == this
+    }
+
+    @Override
+    int hashCode() {
+        return 0;
     }
 }
 

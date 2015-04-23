@@ -1,5 +1,7 @@
 import org.apache.ignite.IgniteSpringBean
+import org.apache.ignite.configuration.DeploymentMode
 import org.apache.ignite.configuration.IgniteConfiguration
+import org.apache.ignite.marshaller.optimized.OptimizedMarshaller
 import org.codehaus.groovy.grails.orm.hibernate.HibernateEventListeners
 import org.joda.time.DateTimeZone
 import org.pillarone.riskanalytics.core.log.TraceLogManager
@@ -24,9 +26,9 @@ class RiskAnalyticsCoreGrailsPlugin {
     def grailsVersion = "2.3.2 > *"
     // the other plugins this plugin depends on
     def dependsOn = [
-            "backgroundThread": "1.3",
+            "backgroundThread"  : "1.3",
             "springSecurityCore": "2.0-RC2",
-            "release": "3.0.1"
+            "release"           : "3.0.1"
     ]
     // resources that are excluded from plugin packaging
     def pluginExcludes = [
@@ -119,19 +121,23 @@ Persistence & Simulation engine.
 //        }
 
         igniteConfig(IgniteConfiguration) {
-
+            marshaller = ref("marshaller")
+            deploymentMode=DeploymentMode.SHARED
         }
+
+        marshaller(OptimizedMarshaller) {}
 
         ignite(IgniteSpringBean) {
             configuration = ref('igniteConfig')
+
         }
 
         cacheItemListener(CacheItemHibernateListener)
 
         hibernateEventListeners(HibernateEventListeners) {
             listenerMap = ['post-commit-insert': cacheItemListener,
-                    'post-commit-update': cacheItemListener,
-                    'post-commit-delete': cacheItemListener]
+                           'post-commit-update': cacheItemListener,
+                           'post-commit-delete': cacheItemListener]
         }
 
         mappingCache(MappingCache) {}
@@ -148,15 +154,15 @@ Persistence & Simulation engine.
 
         //Checks at startup if certain config options required for the core are set and sets defaults otherwise
         def standardCalculatorOutput = [
-                'stdev': true,
+                'stdev'     : true,
                 'percentile': [0.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0],
-                'var': [99, 99.5],
-                'tvar': [99, 99.5],
-                'pdf': 200
+                'var'       : [99, 99.5],
+                'tvar'      : [99, 99.5],
+                'pdf'       : 200
         ]
 
         GrailsConfigValidator.validateConfig(application.config, [
-                "resultBulkInsert": GenericResultBulkInsert,
+                "resultBulkInsert"     : GenericResultBulkInsert,
                 "calculationBulkInsert": GenericCalculationBulkInsert,
                 "keyFiguresToCalculate": standardCalculatorOutput
         ])

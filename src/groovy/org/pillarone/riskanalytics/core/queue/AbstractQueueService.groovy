@@ -102,8 +102,8 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
                     busy = true
                     support.notifyStarting(queueEntry)
                     IQueueTaskFuture future = doWork(queueEntry, queueEntry.priority)
-                    future.listenAsync(taskListener)
                     currentTask = new CurrentTask<Q>(future: future, entry: queueEntry)
+                    future.listen(taskListener)
                 }
             }
         }
@@ -119,7 +119,7 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
             busy = false
             Q entry = currentTask.entry
             currentTask = null
-            future.stopListenAsync(taskListener)
+            future.stopListen(taskListener)
             handleEntry(entry)
             support.notifyFinished(entry.id)
         }

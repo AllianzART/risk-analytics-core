@@ -5,8 +5,8 @@ import grails.util.Holders;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteEvents;
 import org.apache.ignite.IgniteException;
+import org.apache.ignite.IgniteMessaging;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.compute.ComputeJob;
 import org.apache.ignite.compute.ComputeJobResult;
@@ -58,8 +58,8 @@ public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, 
 
     private boolean cancelled;
 
-    private ResultTransferListener resultTransferListener;
     private List<UUID> jobIds = new ArrayList<UUID>();
+    private ResultTransferListener resultTransferListener;
 
     @Nullable
     @Override
@@ -94,9 +94,6 @@ public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, 
             dataSource.load(dataSourceDefinitions, simulationConfiguration.getSimulation());
             simulationConfiguration.setResultDataSource(dataSource);
 
-            resultTransferListener = new ResultTransferListener(this);
-
-//            Grid grid = GridHelper.getGrid();
             Ignite grid = Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class);
             int cpuCount = strategy.getTotalCpuCount(nodes);
 
@@ -132,12 +129,9 @@ public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, 
             }
 
             resultWriter = new ResultWriter(simulationConfiguration.getSimulation().getId());
-            //grid.addMessageListener(this);
-
-            IgniteEvents events = grid.events();
-
-//            grid.listen(resultTransferListener);
-
+            IgniteMessaging message = grid.message();
+            resultTransferListener = new ResultTransferListener(this);
+            message.localListen("dataSendTopic", resultTransferListener);
             if (!cancelled) {
                 setSimulationState(SimulationState.RUNNING);
             }
@@ -231,8 +225,10 @@ public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, 
                 }
             }
             resultWriter.close();
-            resultTransferListener.removeListener();
 
+            Ignite ignite = Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class);
+            IgniteMessaging message = ignite.message();
+            message.stopLocalListen("dataSendTopic", resultTransferListener);
             if (error || cancelled) {
                 simulation.delete();
                 if (!cancelled) {

@@ -40,6 +40,11 @@ abstract class AbstractNodeMappingStrategy implements INodeMappingStrategy {
     public static INodeMappingStrategy getStrategy() {
         try {
             Class strategy = (Class) Holders.config.get(STRATEGY_CLASS_KEY)
+            if (!strategy) {
+                LOG.warn("no strategy set in config -> fallback to LocalNodesStrategy")
+                return new LocalNodesStrategy()
+            }
+
             if (System.getProperty(STRATEGY_CLASS_SYSTEM_PROPERTY) != null) {
                 String mappingClass = System.getProperty(STRATEGY_CLASS_SYSTEM_PROPERTY)
                 strategy = Thread.currentThread().contextClassLoader.loadClass(mappingClass)

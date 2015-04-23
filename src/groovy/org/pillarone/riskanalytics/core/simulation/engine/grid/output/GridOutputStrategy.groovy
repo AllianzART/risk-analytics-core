@@ -60,7 +60,7 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
             resultCount++;
         }
 
-        for (ResultDescriptor descriptor: singleResults.keySet()) {
+        for (ResultDescriptor descriptor : singleResults.keySet()) {
             List<IterationValue> values = singleResults.get(descriptor);
             ByteArrayOutputStream buffer = streamCache.get(descriptor);
             if (buffer == null) {
@@ -70,7 +70,7 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
             DataOutputStream dos = new DataOutputStream(buffer);
             dos.writeInt(iteration);
             dos.writeInt(values.size());
-            for (IterationValue i: values) {
+            for (IterationValue i : values) {
                 dos.writeDouble(i.value);
                 dos.writeLong(i.tstamp);
             }
@@ -84,24 +84,11 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
     }
 
     protected void sendResults() {
-        for (Map.Entry<ResultDescriptor, ByteArrayOutputStream> entry: streamCache.entrySet()) {
+        for (Map.Entry<ResultDescriptor, ByteArrayOutputStream> entry : streamCache.entrySet()) {
             ResultDescriptor resultDescriptor = entry.key
             ByteArrayOutputStream stream = entry.value
-            /*GridRichNode master
-            for (GridRichNode node in getGrid().allNodes) {
-                if (node.getId() == this.masterNodeId) {
-                    master = node
-                }
-            }
-            getGrid().sendMessage(master, new ResultTransferObject(resultDescriptor, jobIdentifier, stream.toByteArray(), runner.getProgress()));*/
-            //TODO
-//            getGrid().send(new ResultTransferObject(resultDescriptor, jobIdentifier, stream.toByteArray(),
-//                    runner.getProgress()), new GridPredicate<GridRichNode>() {
-//                @Override public boolean apply(GridRichNode n) {
-//                    return (n.id() == masterNodeId);
-//                }
-//            }
-//            );
+            getGrid().message().send("dataSendTopic", new ResultTransferObject(resultDescriptor, jobIdentifier, stream.toByteArray(),
+                    runner.getProgress()))
             totalMessages++
             stream.reset()
         }

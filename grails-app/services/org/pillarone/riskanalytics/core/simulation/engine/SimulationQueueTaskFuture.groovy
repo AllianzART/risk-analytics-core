@@ -1,34 +1,31 @@
 package org.pillarone.riskanalytics.core.simulation.engine
 
-import org.gridgain.grid.GridTaskFuture
-import org.gridgain.grid.typedef.CI1
+import org.apache.ignite.compute.ComputeTaskFuture
+import org.apache.ignite.internal.util.typedef.CI1
 import org.pillarone.riskanalytics.core.queue.IQueueTaskFuture
 import org.pillarone.riskanalytics.core.queue.IQueueTaskListener
 
 class SimulationQueueTaskFuture implements IQueueTaskFuture {
 
-    Map<IQueueTaskListener, CI1<GridTaskFuture>> gridListeners = [:]
-    private final GridTaskFuture gridTaskFuture
+    Map<IQueueTaskListener, CI1<ComputeTaskFuture>> gridListeners = [:]
+    private final ComputeTaskFuture gridTaskFuture
     private final SimulationQueueTaskContext context
 
-    SimulationQueueTaskFuture(GridTaskFuture gridTaskFuture, SimulationQueueTaskContext context) {
+    SimulationQueueTaskFuture(ComputeTaskFuture gridTaskFuture, SimulationQueueTaskContext context) {
         this.context = context
         this.gridTaskFuture = gridTaskFuture
     }
 
     @Override
-    void stopListenAsync(IQueueTaskListener taskListener) {
-        CI1<GridTaskFuture> gridListener = gridListeners.remove(taskListener)
-        if (gridListener) {
-            gridTaskFuture.stopListenAsync(gridListener)
-        }
+    void stopListen(IQueueTaskListener taskListener) {
+        gridListeners.remove(taskListener)
     }
 
     @Override
-    void listenAsync(IQueueTaskListener uploadTaskListener) {
+    void listen(IQueueTaskListener uploadTaskListener) {
         TaskListener taskListener = new TaskListener(uploadTaskListener, this)
         gridListeners.put(uploadTaskListener, taskListener)
-        gridTaskFuture.listenAsync(taskListener)
+        gridTaskFuture.listen(taskListener)
     }
 
     @Override
@@ -42,7 +39,7 @@ class SimulationQueueTaskFuture implements IQueueTaskFuture {
         gridListeners.keySet().each { it.apply(this) }
     }
 
-    private static class TaskListener extends CI1<GridTaskFuture> {
+    private static class TaskListener implements CI1<ComputeTaskFuture> {
         IQueueTaskListener taskListener
         IQueueTaskFuture queueTaskFuture
 
@@ -52,7 +49,7 @@ class SimulationQueueTaskFuture implements IQueueTaskFuture {
         }
 
         @Override
-        void apply(GridTaskFuture future) {
+        void apply(ComputeTaskFuture future) {
             taskListener.apply(queueTaskFuture)
         }
     }
