@@ -2,9 +2,9 @@ package org.pillarone.riskanalytics.core.simulation.engine.grid
 
 import grails.util.Holders
 import groovy.transform.CompileStatic
+import org.apache.ignite.compute.ComputeJobContinuationAdapter
 import org.apache.log4j.MDC
 import org.codehaus.groovy.grails.commons.DefaultGrailsApplication
-import org.gridgain.grid.GridJobAdapterEx
 import org.joda.time.DateTimeZone
 import org.pillarone.riskanalytics.core.components.ResourceRegistry
 import org.pillarone.riskanalytics.core.output.aggregation.IPacketAggregator
@@ -20,7 +20,7 @@ import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.context.support.GenericApplicationContext
 
 @CompileStatic
-class SimulationJob extends GridJobAdapterEx {
+class SimulationJob extends ComputeJobContinuationAdapter {
 
     protected SimulationConfiguration simulationConfiguration
     private SimulationRunner runner = SimulationRunner.createRunner()

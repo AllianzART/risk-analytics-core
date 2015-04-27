@@ -27,7 +27,7 @@ environments {
                 error 'stdout'
                 additivity = false
             }
-            info 'org.pillarone.riskanalytics.core', 'org.gridgain'
+            info 'org.pillarone.riskanalytics.core', 'org.apache.ignite'
         }
         keyFiguresToCalculate = [
                 'stdev': true,

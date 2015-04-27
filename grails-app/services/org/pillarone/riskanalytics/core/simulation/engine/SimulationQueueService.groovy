@@ -1,14 +1,14 @@
 package org.pillarone.riskanalytics.core.simulation.engine
-
-import org.gridgain.grid.Grid
-import org.gridgain.grid.GridTaskFuture
+import org.apache.ignite.Ignite
+import org.apache.ignite.IgniteCompute
+import org.apache.ignite.compute.ComputeTaskFuture
 import org.pillarone.riskanalytics.core.queue.AbstractQueueService
 import org.pillarone.riskanalytics.core.queue.IQueueTaskFuture
 import org.pillarone.riskanalytics.core.simulation.SimulationState
 
 class SimulationQueueService extends AbstractQueueService<SimulationConfiguration, SimulationQueueEntry> {
 
-    Grid grid
+    Ignite ignite
 
     @Override
     SimulationQueueEntry createQueueEntry(SimulationConfiguration configuration, int priority) {
@@ -32,8 +32,10 @@ class SimulationQueueService extends AbstractQueueService<SimulationConfiguratio
     @Override
     IQueueTaskFuture doWork(SimulationQueueEntry entry, int priority) {
         SimulationQueueTaskContext context = entry.context
-        GridTaskFuture future = grid.execute(context.simulationTask, context.simulationTask.simulationConfiguration)
-        new SimulationQueueTaskFuture(future, context)
+        IgniteCompute compute = ignite.compute().withAsync()
+        compute.execute(context.simulationTask, context.simulationTask.simulationConfiguration)
+        ComputeTaskFuture future = compute.future()
+        return new SimulationQueueTaskFuture(future, context)
     }
 
     @Override
@@ -51,8 +53,8 @@ class SimulationQueueService extends AbstractQueueService<SimulationConfiguratio
             case SimulationState.SAVING_RESULTS:
             case SimulationState.POST_SIMULATION_CALCULATIONS:
             default:
-                log.error("task has finished, but state was $simulationState. This is likely to an internal gridgain error")
-                context.simulationTask.simulationErrors.add(new Throwable("internal gridgain error"))
+                log.error("task has finished, but state was $simulationState. This is likely to an internal IGNITE error")
+                context.simulationTask.simulationErrors.add(new Throwable("internal IGNITE error"))
                 context.simulationTask.simulationState = SimulationState.ERROR
         }
     }

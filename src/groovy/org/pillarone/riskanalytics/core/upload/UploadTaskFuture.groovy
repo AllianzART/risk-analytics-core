@@ -1,11 +1,8 @@
 package org.pillarone.riskanalytics.core.upload
-
 import grails.util.Holders
 import org.pillarone.riskanalytics.core.queue.IQueueTaskFuture
 import org.pillarone.riskanalytics.core.queue.IQueueTaskListener
 import org.pillarone.riskanalytics.core.remoting.IUploadService
-import org.pillarone.riskanalytics.core.upload.UploadQueueTaskContext
-import org.pillarone.riskanalytics.core.upload.UploadState
 
 import java.util.concurrent.CopyOnWriteArraySet
 
@@ -58,12 +55,12 @@ class UploadTaskFuture implements IQueueTaskFuture {
     }
 
     @Override
-    void stopListenAsync(IQueueTaskListener uploadTaskListener) {
+    void stopListen(IQueueTaskListener uploadTaskListener) {
         taskListeners.remove(uploadTaskListener)
     }
 
     @Override
-    void listenAsync(IQueueTaskListener uploadTaskListener) {
+    void listen(IQueueTaskListener uploadTaskListener) {
         taskListeners.add(uploadTaskListener)
     }
 }

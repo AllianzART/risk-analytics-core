@@ -1,9 +1,9 @@
 package org.pillarone.riskanalytics.core.queue
 
 interface IQueueTaskFuture {
-    void stopListenAsync(IQueueTaskListener taskListener)
+    void stopListen(IQueueTaskListener taskListener)
 
-    void listenAsync(IQueueTaskListener uploadTaskListener)
+    void listen(IQueueTaskListener uploadTaskListener)
 
     void cancel()
 

@@ -1,15 +1,12 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid.output
-
 import groovy.transform.CompileStatic
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
-import org.gridgain.grid.Grid
+import org.apache.ignite.Ignite
 import org.pillarone.riskanalytics.core.output.ICollectorOutputStrategy
 import org.pillarone.riskanalytics.core.output.SingleValueResultPOJO
 import org.pillarone.riskanalytics.core.simulation.engine.SimulationRunner
 import org.pillarone.riskanalytics.core.simulation.engine.grid.GridHelper
-import org.gridgain.grid.GridRichNode
-import org.gridgain.grid.lang.GridPredicate
 import org.pillarone.riskanalytics.core.util.GroovyUtils
 
 @CompileStatic
@@ -20,7 +17,7 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
 
     private HashMap<ResultDescriptor, ByteArrayOutputStream> streamCache = new HashMap<ResultDescriptor, ByteArrayOutputStream>();
 
-    private Grid grid
+    private Ignite grid
     private UUID masterNodeId
     private SimulationRunner runner
     private UUID jobIdentifier
@@ -35,7 +32,7 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
         this.jobIdentifier = jobIdentifier
     }
 
-    private Grid getGrid() {
+    private Ignite getGrid() {
         if (grid == null) {
             grid = GridHelper.getGrid()
         }
@@ -59,11 +56,11 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
                 values = new ArrayList<IterationValue>();
                 singleResults.put(descriptor, values);
             }
-            values.add(new IterationValue(result.value, result.date != null ? result.date.millis : 0));
+            values.add(new IterationValue(result.value, result.date != null ? result.date.millis : 0l));
             resultCount++;
         }
 
-        for (ResultDescriptor descriptor: singleResults.keySet()) {
+        for (ResultDescriptor descriptor : singleResults.keySet()) {
             List<IterationValue> values = singleResults.get(descriptor);
             ByteArrayOutputStream buffer = streamCache.get(descriptor);
             if (buffer == null) {
@@ -73,7 +70,7 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
             DataOutputStream dos = new DataOutputStream(buffer);
             dos.writeInt(iteration);
             dos.writeInt(values.size());
-            for (IterationValue i: values) {
+            for (IterationValue i : values) {
                 dos.writeDouble(i.value);
                 dos.writeLong(i.tstamp);
             }
@@ -87,23 +84,11 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
     }
 
     protected void sendResults() {
-        for (Map.Entry<ResultDescriptor, ByteArrayOutputStream> entry: streamCache.entrySet()) {
+        for (Map.Entry<ResultDescriptor, ByteArrayOutputStream> entry : streamCache.entrySet()) {
             ResultDescriptor resultDescriptor = entry.key
             ByteArrayOutputStream stream = entry.value
-            /*GridRichNode master
-            for (GridRichNode node in getGrid().allNodes) {
-                if (node.getId() == this.masterNodeId) {
-                    master = node
-                }
-            }
-            getGrid().sendMessage(master, new ResultTransferObject(resultDescriptor, jobIdentifier, stream.toByteArray(), runner.getProgress()));*/
-            getGrid().send(new ResultTransferObject(resultDescriptor, jobIdentifier, stream.toByteArray(),
-                    runner.getProgress()), new GridPredicate<GridRichNode>() {
-                @Override public boolean apply(GridRichNode n) {
-                    return (n.id() == masterNodeId);
-                }
-            }
-            );
+            getGrid().message().send("dataSendTopic", new ResultTransferObject(resultDescriptor, jobIdentifier, stream.toByteArray(),
+                    runner.getProgress()))
             totalMessages++
             stream.reset()
         }

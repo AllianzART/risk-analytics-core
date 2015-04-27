@@ -1,20 +1,18 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid.mapping
 
 import groovy.transform.CompileStatic
-import org.gridgain.grid.GridNode
-import org.gridgain.grid.GridRichNode
+import org.apache.ignite.cluster.ClusterNode
 
 @CompileStatic
 class LocalNodesStrategy extends AbstractNodeMappingStrategy {
 
     @Override
-    Set<GridNode> filterNodes(List<GridNode> allNodes) {
-        Set<GridNode> result = new HashSet<GridNode>()
-        GridRichNode localNode = grid.localNode()
-        Set<String> localAddresses = (localNode.externalAddresses() + localNode.internalAddresses()).toSet()
-
-        for (GridNode node in allNodes) {
-            Set<String> remoteAddresses = (node.externalAddresses() + node.internalAddresses()).toSet()
+    Set<ClusterNode> filterNodes(List<ClusterNode> allNodes) {
+        Set<ClusterNode> result = new HashSet<ClusterNode>()
+        ClusterNode localNode = grid.cluster().localNode()
+        Collection<String> localAddresses = localNode.addresses()
+        for (ClusterNode node in allNodes) {
+            Collection<String> remoteAddresses = node.addresses()
             if (remoteAddresses.any { localAddresses.contains(it) }) {
                 result.add(node)
             }
@@ -22,6 +20,4 @@ class LocalNodesStrategy extends AbstractNodeMappingStrategy {
 
         return result
     }
-
-
 }

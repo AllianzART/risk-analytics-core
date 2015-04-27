@@ -1,5 +1,5 @@
 //Use a custom plugins dir, because different branches use different plugin versions
-grails.project.plugins.dir = "../local-plugins/RiskAnalyticsCore-1.9.x"
+grails.project.plugins.dir = "../local-plugins/RiskAnalyticsCore-master"
 
 grails.project.dependency.resolver = "maven"
 
@@ -15,6 +15,12 @@ grails.project.dependency.resolution = {
             updatePolicy System.getProperty('snapshotUpdatePolicy') ?: 'daily'
         }
 
+        //can be removed when newest ignite version 1.0.2 is moved to maven central
+        mavenRepo 'http://www.gridgainsystems.com/nexus/content/repositories/external'
+
+        mavenCentral()
+        grailsCentral()
+        mavenRepo 'http://repo.spring.io/milestone'
     }
 
     plugins {
@@ -32,6 +38,16 @@ grails.project.dependency.resolution = {
     }
 
     dependencies {
+        compile 'org.apache.ignite:ignite-core:1.0.2'  , {
+            excludes 'spring-aop', 'spring-beans','spring-core' ,'spring-context','spring-expression'
+        }
+        compile 'org.apache.ignite:ignite-spring:1.0.2' , {
+            excludes 'spring-aop', 'spring-beans','spring-core' ,'spring-context','spring-expression'
+        }
+//        compile 'org.apache.ignite:ignite-indexing:1.0.2'  , {
+//            excludes 'spring-aop', 'spring-beans','spring-core' ,'spring-context','spring-expression'
+//        }
+
         compile('com.google.guava:guava:18.0')
         runtime 'net.sf.jasperreports:jasperreports:4.0.1', {
             excludes "xml-apis", "commons-collections", "jdtcore"
@@ -40,13 +56,11 @@ grails.project.dependency.resolution = {
         compile('org.apache.poi:poi-ooxml:3.9') {
             exclude "xmlbeans"
         }
-        compile("org.apache.xmlbeans:xmlbeans:2.3.0-without-w3c")
+        compile("org.apache.xmlbeans:xmlbeans:2.3.0")
+
+        compile 'commons-cli:commons-cli:1.2'
 
         compile 'joda-time:joda-time:2.3'
-        //gridgain & deps
-//        compile("org.gridgain:gridgain:3.6.0c") {
-//            transitive = false
-//        }
         runtime("javax.mail:mail:1.4.4")
         runtime("net.sf.jtidy:jtidy:r938")
 //        runtime("net.sf.cron4j:cron4j:2.2.5")

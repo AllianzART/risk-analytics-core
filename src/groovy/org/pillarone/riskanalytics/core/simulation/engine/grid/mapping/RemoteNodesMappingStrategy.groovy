@@ -1,8 +1,7 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid.mapping
 
 import groovy.transform.CompileStatic
-import org.gridgain.grid.GridNode
-import org.gridgain.grid.GridRichNode
+import org.apache.ignite.cluster.ClusterNode
 
 /**
  * For use when no local gridnodes should be given work, only remote nodes.
@@ -17,16 +16,16 @@ class RemoteNodesMappingStrategy extends AbstractNodeMappingStrategy {
 
 
     @Override
-    Set<GridNode> filterNodes(List<GridNode> allNodes) {
+    Set<ClusterNode> filterNodes(List<ClusterNode> allNodes) {
 
-        Set<GridNode> remoteNodes = new HashSet<GridNode>();
+        Set<ClusterNode> remoteNodes = new HashSet<ClusterNode>();
 
-        GridRichNode localNode = grid.localNode();
-        Set<String> localAddresses = (localNode.externalAddresses() + localNode.internalAddresses()).toSet();
+        ClusterNode localNode = grid.cluster().localNode();
+        Collection<String> localAddresses = localNode.addresses();
 
-        for (GridNode node in allNodes) {
-            Set<String> nodeAddresses = (node.externalAddresses() + node.internalAddresses()).toSet()
-            if ( ! nodeAddresses.any { localAddresses.contains(it) }) {
+        for (ClusterNode node in allNodes) {
+            Collection<String> nodeAddresses = node.addresses()
+            if (!nodeAddresses.any { localAddresses.contains(it) }) {
                 remoteNodes.add(node);
             }
         }

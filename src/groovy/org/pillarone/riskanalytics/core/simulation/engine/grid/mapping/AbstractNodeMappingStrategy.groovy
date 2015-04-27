@@ -4,8 +4,8 @@ import grails.util.Holders
 import groovy.transform.CompileStatic
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
-import org.gridgain.grid.Grid
-import org.gridgain.grid.GridNode
+import org.apache.ignite.Ignite
+import org.apache.ignite.cluster.ClusterNode
 import org.pillarone.riskanalytics.core.simulation.engine.grid.GridHelper
 
 @CompileStatic
@@ -14,19 +14,19 @@ abstract class AbstractNodeMappingStrategy implements INodeMappingStrategy {
     public static final String STRATEGY_CLASS_SYSTEM_PROPERTY = "nodeMappingStrategy"
     public static final String STRATEGY_CLASS_KEY = STRATEGY_CLASS_SYSTEM_PROPERTY
 
-    protected Grid grid
+    protected Ignite grid
 
-    protected Log LOG = LogFactory.getLog(getClass())
+    private static final Log LOG = LogFactory.getLog(AbstractNodeMappingStrategy)
 
     AbstractNodeMappingStrategy() {
         this.grid = GridHelper.getGrid()
     }
 
     @Override
-    int getTotalCpuCount(List<GridNode> usableNodes) {
+    int getTotalCpuCount(List<ClusterNode> usableNodes) {
         List<String> usedHosts = new ArrayList<String>();
         int processorCount = 0;
-        for (GridNode node: usableNodes) {
+        for (ClusterNode node : usableNodes) {
             String ip = getAddress(node);
             if (!usedHosts.contains(ip)) {
                 processorCount += node.metrics().getTotalCpus();
@@ -40,23 +40,25 @@ abstract class AbstractNodeMappingStrategy implements INodeMappingStrategy {
     public static INodeMappingStrategy getStrategy() {
         try {
             Class strategy = (Class) Holders.config.get(STRATEGY_CLASS_KEY)
-            if(System.getProperty(STRATEGY_CLASS_SYSTEM_PROPERTY) != null) {
+            if (!strategy) {
+                LOG.warn("no strategy set in config -> fallback to LocalNodesStrategy")
+                return new LocalNodesStrategy()
+            }
+
+            if (System.getProperty(STRATEGY_CLASS_SYSTEM_PROPERTY) != null) {
                 String mappingClass = System.getProperty(STRATEGY_CLASS_SYSTEM_PROPERTY)
                 strategy = Thread.currentThread().contextClassLoader.loadClass(mappingClass)
             }
             return (INodeMappingStrategy) strategy.newInstance()
         } catch (Exception e) {
+            LOG.error("failed to find strategy. Switch to LocalNodeStrategy", e)
             return new LocalNodesStrategy()
         }
-
     }
 
-    protected String getAddress(GridNode node) {
-        if(!node.internalAddresses().empty) {
-            return node.internalAddresses().toList().get(0);
-        }
-        if(!node.externalAddresses().empty) {
-            return node.externalAddresses().toList().get(0);
+    protected static String getAddress(ClusterNode node) {
+        if (!node.addresses().empty) {
+            return node.addresses().iterator().next();
         }
         throw new IllegalStateException("Grid node ${node} does not have a physical address.")
     }

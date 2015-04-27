@@ -1,14 +1,13 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid;
 
-import org.gridgain.grid.GridException;
-import org.gridgain.grid.GridListenActor;
+import org.apache.ignite.lang.IgniteBiPredicate;
 import org.pillarone.riskanalytics.core.simulation.SimulationState;
 import org.pillarone.riskanalytics.core.simulation.engine.grid.output.ResultTransferObject;
 
 import java.util.UUID;
 
 
-public class ResultTransferListener extends GridListenActor<ResultTransferObject> {
+public class ResultTransferListener implements IgniteBiPredicate<UUID, ResultTransferObject> {
 
     private SimulationTask simulationTask;
 
@@ -17,17 +16,14 @@ public class ResultTransferListener extends GridListenActor<ResultTransferObject
     }
 
     @Override
-    public void receive(UUID nodeId, ResultTransferObject msg) throws GridException {
+    public boolean apply(UUID uuid, ResultTransferObject resultTransferObject) {
         try {
-            simulationTask.onMessage(msg);
+            simulationTask.onMessage(resultTransferObject);
         } catch (Exception e) {
             simulationTask.getSimulationErrors().add(e);
             simulationTask.setSimulationState(SimulationState.ERROR);
             throw new RuntimeException(e);
         }
-    }
-
-    public void removeListener() {
-        stop();
+        return false;
     }
 }
