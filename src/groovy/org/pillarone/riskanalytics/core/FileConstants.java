@@ -15,7 +15,7 @@ public class FileConstants {
     public static final String COMMENT_PDF_DIRECTORY;
     public static final String REPORT_PDF_DIRECTORY;
     public static final String CSV_EXPORT_DIRECTORY;
-    public static final String GRIDGAIN_HOME;
+    public static final String IGNITE_HOME;
 
     static {
         boolean appendVersion = !Configuration.getBoolean("dataDirectoryIndependentOfVersion", false);
@@ -72,8 +72,8 @@ public class FileConstants {
         file.mkdirs();
         assert file.exists();
 
-        GRIDGAIN_HOME = BASE_DATA_DIRECTORY + File.separatorChar + "gridgain";
-        file = new File(GRIDGAIN_HOME);
+        IGNITE_HOME = BASE_DATA_DIRECTORY + File.separatorChar + "ignite";
+        file = new File(IGNITE_HOME);
         file.mkdirs();
         assert file.exists();
 

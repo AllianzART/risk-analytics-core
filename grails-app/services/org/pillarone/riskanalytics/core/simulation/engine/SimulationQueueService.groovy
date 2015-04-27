@@ -53,8 +53,8 @@ class SimulationQueueService extends AbstractQueueService<SimulationConfiguratio
             case SimulationState.SAVING_RESULTS:
             case SimulationState.POST_SIMULATION_CALCULATIONS:
             default:
-                log.error("task has finished, but state was $simulationState. This is likely to an internal gridgain error")
-                context.simulationTask.simulationErrors.add(new Throwable("internal gridgain error"))
+                log.error("task has finished, but state was $simulationState. This is likely to an internal IGNITE error")
+                context.simulationTask.simulationErrors.add(new Throwable("internal IGNITE error"))
                 context.simulationTask.simulationState = SimulationState.ERROR
         }
     }

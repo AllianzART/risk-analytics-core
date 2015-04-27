@@ -15,6 +15,7 @@ grails.project.dependency.resolution = {
             updatePolicy System.getProperty('snapshotUpdatePolicy') ?: 'daily'
         }
 
+        //can be removed when newest ignite version 1.0.2 is moved to maven central
         mavenRepo 'http://www.gridgainsystems.com/nexus/content/repositories/external'
 
         mavenCentral()
@@ -56,6 +57,8 @@ grails.project.dependency.resolution = {
             exclude "xmlbeans"
         }
         compile("org.apache.xmlbeans:xmlbeans:2.3.0")
+
+        compile 'commons-cli:commons-cli:1.2'
 
         compile 'joda-time:joda-time:2.3'
         runtime("javax.mail:mail:1.4.4")

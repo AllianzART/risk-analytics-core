@@ -1,12 +1,9 @@
 import org.apache.ignite.IgniteSpringBean
 import org.apache.ignite.configuration.IgniteConfiguration
 import org.apache.ignite.marshaller.optimized.OptimizedMarshaller
+import org.apache.ignite.spi.collision.fifoqueue.FifoQueueCollisionSpi
+import org.apache.ignite.spi.failover.never.NeverFailoverSpi
 import org.codehaus.groovy.grails.orm.hibernate.HibernateEventListeners
-import org.gridgain.grid.GridConfigurationAdapter
-import org.gridgain.grid.GridSpringBean
-import org.gridgain.grid.marshaller.optimized.GridOptimizedMarshaller
-import org.gridgain.grid.spi.collision.fifoqueue.GridFifoQueueCollisionSpi
-import org.gridgain.grid.spi.failover.never.GridNeverFailoverSpi
 import org.joda.time.DateTimeZone
 import org.pillarone.riskanalytics.core.FileConstants
 import org.pillarone.riskanalytics.core.log.TraceLogManager
@@ -100,51 +97,44 @@ Persistence & Simulation engine.
 
         resultServiceBean(ResultService) {}
 
-        "grid.cfg"(GridConfigurationAdapter) {
-            gridName = "pillarone"
-
-            String gridgainHomeDefault = FileConstants.GRIDGAIN_HOME
-            String ggHome = System.getProperty("GRIDGAIN_HOME")
-            if (ggHome != null) {
-                gridgainHomeDefault = new File(ggHome).absolutePath
-            }
-            gridGainHome = gridgainHomeDefault
-            collisionSpi = ref("collisionSpi")
-            failoverSpi = ref("failoverSpi")
-            marshaller = ref("marshaller")
-            networkTimeout = 30000
-
-        }
-        marshaller(GridOptimizedMarshaller) {}
-        failoverSpi(GridNeverFailoverSpi)
-        collisionSpi(GridFifoQueueCollisionSpi) {
+        //start ignite config
+        igniteCollisionSpi(FifoQueueCollisionSpi) {
             parallelJobsNumber = config.containsKey("numberOfParallelJobsPerNode") ?
                 config."numberOfParallelJobsPerNode" : 100
         }
-        grid(GridSpringBean) {
-            configuration = ref('grid.cfg')
-        }
 
-        igniteConfig(IgniteConfiguration) {
-            marshaller = ref("igniteMarshaller")
-            peerClassLoadingEnabled=true
-        }
+        igniteFailoverSpi(NeverFailoverSpi)
 
         igniteMarshaller(OptimizedMarshaller) {}
 
-        ignite(IgniteSpringBean) {
-            configuration = ref('igniteConfig')
-
+        igniteConfig(IgniteConfiguration) {
+            gridName = "pillarone-ignite-1.10-SNAPSHOT"
+            marshaller = ref("igniteMarshaller")
+            peerClassLoadingEnabled = true
+            networkTimeout = 30000
+            String igniteSystemConfigHome = System.getProperty("IGNITE_HOME")
+            if (igniteSystemConfigHome != null) {
+                igniteHome = new File(igniteSystemConfigHome).absolutePath
+            } else {
+                igniteHome = FileConstants.IGNITE_HOME
+            }
+            collisionSpi = ref("igniteCollisionSpi")
+            failoverSpi = ref("igniteFailoverSpi")
         }
 
-        cacheItemListener(CacheItemHibernateListener)
 
+        ignite(IgniteSpringBean) {
+            configuration = ref('igniteConfig')
+        }
+        //stop ignite config
+
+
+        cacheItemListener(CacheItemHibernateListener)
         hibernateEventListeners(HibernateEventListeners) {
             listenerMap = ['post-commit-insert': cacheItemListener,
                            'post-commit-update': cacheItemListener,
                            'post-commit-delete': cacheItemListener]
         }
-
         mappingCache(MappingCache) {}
     }
 
