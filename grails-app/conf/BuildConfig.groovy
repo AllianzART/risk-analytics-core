@@ -44,10 +44,6 @@ grails.project.dependency.resolution = {
         compile 'org.apache.ignite:ignite-spring:1.0.2' , {
             excludes 'spring-aop', 'spring-beans','spring-core' ,'spring-context','spring-expression'
         }
-//        compile 'org.apache.ignite:ignite-indexing:1.0.2'  , {
-//            excludes 'spring-aop', 'spring-beans','spring-core' ,'spring-context','spring-expression'
-//        }
-
         compile('com.google.guava:guava:18.0')
         runtime 'net.sf.jasperreports:jasperreports:4.0.1', {
             excludes "xml-apis", "commons-collections", "jdtcore"
