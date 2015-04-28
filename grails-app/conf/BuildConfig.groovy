@@ -16,7 +16,7 @@ grails.project.dependency.resolution = {
         }
 
         //can be removed when newest ignite version 1.0.2 is moved to maven central
-        mavenRepo 'http://www.gridgainsystems.com/nexus/content/repositories/external'
+//        mavenRepo 'http://www.gridgainsystems.com/nexus/content/repositories/external'
 
         mavenCentral()
         grailsCentral()
