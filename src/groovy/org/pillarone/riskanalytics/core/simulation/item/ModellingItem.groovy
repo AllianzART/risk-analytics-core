@@ -144,7 +144,7 @@ abstract class ModellingItem implements Serializable {
         modificationDate = new DateTime()
     }
 
-    protected void logErrors(def dao) {
+    protected static void logErrors(def dao) {
         if (dao?.hasErrors()) {
             dao.errors.each {
                 LOG.error(it)

@@ -207,8 +207,8 @@ abstract class ParametrizedItem extends CommentableItem {
         boolean isNested = nestedIndex > -1
         if (isNested) {
             String subPath = path.substring(0, nestedIndex)
-            List<ParameterHolder> findAll = allParameterHolders.findAll { ParameterHolder it -> !it.removed && it.path == subPath && it.periodIndex == periodIndex }
-            if (findAll.size() == 0) {
+            List<ParameterHolder> findAll = allParameterHolders.findAll { ParameterHolder it -> !it.removed && it.periodIndex == periodIndex && it.path == subPath }
+            if (findAll.empty) {
                 throw new ParameterNotFoundException("Parameter $path does not exist for period $periodIndex (base path $subPath not found)")
             }
             if (findAll.size() > 1) {
@@ -245,7 +245,7 @@ abstract class ParametrizedItem extends CommentableItem {
         if (isNested) {
             String subPath = path.substring(0, nestedIndex)
             List<ParameterHolder> parameterHolders = allParameterHolders.findAll { ParameterHolder it -> !it.removed && it.path == subPath }
-            if (parameterHolders.empty == 0) {
+            if (parameterHolders.empty) {
                 throw new ParameterNotFoundException("Parameter $path does not exist (base path $subPath not found)")
             }
             List<ParameterHolder> result = []

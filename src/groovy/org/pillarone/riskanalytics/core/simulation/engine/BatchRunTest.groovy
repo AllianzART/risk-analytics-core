@@ -6,6 +6,8 @@ import org.junit.Before
 import org.junit.Test
 import org.pillarone.riskanalytics.core.batch.BatchRunService
 import org.pillarone.riskanalytics.core.queue.QueueListener
+import org.pillarone.riskanalytics.core.simulation.SimulationState
+import org.pillarone.riskanalytics.core.simulation.engine.grid.SimulationTask
 import org.pillarone.riskanalytics.core.simulation.item.Batch
 
 import java.util.concurrent.CountDownLatch
@@ -36,9 +38,11 @@ abstract class BatchRunTest extends ModelTest {
         assert batch.executed
         assert listener.offered.size() == 1
         SimulationQueueEntry entry = listener.offered.first()
-        assert entry.context.simulationTask.simulation.parameterization == run.parameterization
+        SimulationTask simulationTask = entry.context.simulationTask
+        assert simulationTask.simulation.parameterization == run.parameterization
         //wait to finish simulation
         listener.waitUntilFinished()
+        assert SimulationState.FINISHED == simulationTask.simulationState
     }
 
     static BatchRunService getBatchRunService() {

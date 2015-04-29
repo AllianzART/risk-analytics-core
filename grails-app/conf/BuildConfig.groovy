@@ -67,6 +67,7 @@ grails.project.dependency.resolution = {
         //see http://jira.grails.org/browse/GRAILS-10671
         build "com.lowagie:itext:2.1.7"
         //build "org.apache.maven.wagon:wagon-http:jar:1.0-beta-2"
+        test 'hsqldb:hsqldb:1.8.0.10'
     }
 }
 
