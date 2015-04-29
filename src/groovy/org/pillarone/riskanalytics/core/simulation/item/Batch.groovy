@@ -78,7 +78,7 @@ class Batch extends ModellingItem {
 
     @Override
     void logDeleteSuccess() {
-        log.info("DELETED  ${toString()} created: $creationDate by ${creator.username}")
+        log.info("DELETED  ${toString()} created: $creationDate by ${creator?.username}")
     }
 
     @Override
