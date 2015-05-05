@@ -11,8 +11,7 @@ import org.pillarone.riskanalytics.core.simulation.engine.grid.GridHelper
 @CompileStatic
 abstract class AbstractNodeMappingStrategy implements INodeMappingStrategy {
 
-    public static final String STRATEGY_CLASS_SYSTEM_PROPERTY = "nodeMappingStrategy"
-    public static final String STRATEGY_CLASS_KEY = STRATEGY_CLASS_SYSTEM_PROPERTY
+    private static final String STRATEGY_CLASS_KEY = "nodeMappingStrategy"
 
     protected Ignite grid
 
@@ -37,21 +36,26 @@ abstract class AbstractNodeMappingStrategy implements INodeMappingStrategy {
         return processorCount;
     }
 
+    // Was dumb order of checking.. -D system property should take precedence over Config
+    //
     public static INodeMappingStrategy getStrategy() {
+        Class strategy = null
         try {
-            Class strategy = (Class) Holders.config.get(STRATEGY_CLASS_KEY)
-            if (!strategy) {
-                LOG.warn("no strategy set in config -> fallback to LocalNodesStrategy")
-                return new LocalNodesStrategy()
+            String mappingClass = System.getProperty(STRATEGY_CLASS_KEY)
+            if ( mappingClass ) {
+                LOG.info("Found -D$STRATEGY_CLASS_KEY=$mappingClass")
+                strategy = Thread.currentThread().contextClassLoader.loadClass(mappingClass)
+            } else {
+                strategy = (Class) Holders.config.get(STRATEGY_CLASS_KEY)
+                if (!strategy) {
+                    LOG.warn("no $STRATEGY_CLASS_KEY set in config - defaulting to LocalNodesStrategy")
+                    return new LocalNodesStrategy()
+                }
             }
 
-            if (System.getProperty(STRATEGY_CLASS_SYSTEM_PROPERTY) != null) {
-                String mappingClass = System.getProperty(STRATEGY_CLASS_SYSTEM_PROPERTY)
-                strategy = Thread.currentThread().contextClassLoader.loadClass(mappingClass)
-            }
             return (INodeMappingStrategy) strategy.newInstance()
         } catch (Exception e) {
-            LOG.error("failed to find strategy. Switch to LocalNodeStrategy", e)
+            LOG.error("failed to find $strategy. Switch to LocalNodeStrategy", e)
             return new LocalNodesStrategy()
         }
     }
