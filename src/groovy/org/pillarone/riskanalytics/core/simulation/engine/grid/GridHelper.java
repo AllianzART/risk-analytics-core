@@ -13,7 +13,7 @@ public class GridHelper {
         try {
             return Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class);
         } catch (Exception e) {
-            return Ignition.ignite();
+            return Ignition.start();
         }
     }
 

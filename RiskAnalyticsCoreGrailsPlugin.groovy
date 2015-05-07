@@ -2,6 +2,8 @@ import org.apache.ignite.IgniteSpringBean
 import org.apache.ignite.configuration.IgniteConfiguration
 import org.apache.ignite.marshaller.optimized.OptimizedMarshaller
 import org.apache.ignite.spi.collision.fifoqueue.FifoQueueCollisionSpi
+import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi
+import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder
 import org.apache.ignite.spi.failover.never.NeverFailoverSpi
 import org.codehaus.groovy.grails.orm.hibernate.HibernateEventListeners
 import org.joda.time.DateTimeZone
@@ -23,7 +25,7 @@ import org.springframework.transaction.interceptor.TransactionProxyFactoryBean
 
 class RiskAnalyticsCoreGrailsPlugin {
     // the plugin version
-    def version = "GridGain6-SNAPSHOT"
+    def version = "1.10-GridGain6-SNAPSHOT"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "2.3.2 > *"
     // the other plugins this plugin depends on
@@ -99,13 +101,22 @@ Persistence & Simulation engine.
 
         //start ignite config
         igniteCollisionSpi(FifoQueueCollisionSpi) {
-            parallelJobsNumber = config.containsKey("numberOfParallelJobsPerNode") ?
-                config."numberOfParallelJobsPerNode" : 100
+            parallelJobsNumber = 1
         }
 
         igniteFailoverSpi(NeverFailoverSpi)
 
-        igniteMarshaller(OptimizedMarshaller) {}
+        ipFinder(TcpDiscoveryVmIpFinder) {
+            addresses = ["127.0.0.1"]
+        }
+
+        discoverySpi(TcpDiscoverySpi) {
+            ipFinder = ref("ipFinder")
+        }
+
+        igniteMarshaller(OptimizedMarshaller) {
+            requireSerializable = false
+        }
 
         igniteConfig(IgniteConfiguration) {
             gridName = "pillarone-ignite-1.10-SNAPSHOT"
@@ -120,6 +131,7 @@ Persistence & Simulation engine.
             }
             collisionSpi = ref("igniteCollisionSpi")
             failoverSpi = ref("igniteFailoverSpi")
+            discoverySpi = ref("discoverySpi")
         }
 
 
