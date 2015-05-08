@@ -81,6 +81,7 @@ class Parameterization extends ParametrizedItem {
         this.modelClass = modelClass
     }
 
+    @Override
     void logDeleteSuccess() {
         LOG.info("DELETED  ${name} v${versionNumber} (status: ${status})")
     }
@@ -136,6 +137,7 @@ class Parameterization extends ParametrizedItem {
         return errors.toString();
     }
 
+    @Override
     Long save() {
         def result = null
         daoClass.withTransaction { TransactionStatus status ->
@@ -359,6 +361,7 @@ class Parameterization extends ParametrizedItem {
         tags?.clear()
     }
 
+    @Override
     def getDao() {
         if (parameterizationDAO?.id == null) {
             parameterizationDAO = createDao() as ParameterizationDAO
@@ -370,10 +373,12 @@ class Parameterization extends ParametrizedItem {
         }
     }
 
+    @Override
     void setDao(def newDao) {
         parameterizationDAO = newDao
     }
 
+    @Override
     @CompileStatic
     int hashCode() {
         HashCodeBuilder hashCodeBuilder = new HashCodeBuilder()
@@ -383,6 +388,7 @@ class Parameterization extends ParametrizedItem {
         return hashCodeBuilder.toHashCode()
     }
 
+    @Override
     boolean equals(Object obj) {
         if (obj instanceof Parameterization) {
             return super.equals(obj) && obj.versionNumber.equals(versionNumber)
@@ -391,11 +397,12 @@ class Parameterization extends ParametrizedItem {
         }
     }
 
+    @Override
     boolean isUsedInSimulation() {
         return SimulationRun.find("from ${SimulationRun.class.name} as run where run.parameterization.name = ? and run.parameterization.modelClassName = ? and run.parameterization.itemVersion =?", [name, modelClass.name, versionNumber.toString()]) != null
     }
 
-
+    @Override
     @CompileStatic
     boolean isEditable() {
         if (status != NONE && status != DATA_ENTRY) {
@@ -420,6 +427,7 @@ class Parameterization extends ParametrizedItem {
         return status == NONE || status == DATA_ENTRY
     }
 
+    @Override
     List<Simulation> getSimulations() {
         if (!loaded) {
             load()
@@ -538,6 +546,7 @@ class Parameterization extends ParametrizedItem {
         return "P$index".toString()
     }
 
+    @Override
     @CompileStatic
     void setModelClass(Class clazz) {
         super.modelClass = clazz
