@@ -17,6 +17,8 @@ abstract class ResultAccessor {
 
     private static final Log LOG = LogFactory.getLog(ResultAccessor)
 
+    static final String MISSING_DIR_PREFIX = 'Missing dir:'
+
     private static HashMap<String, Integer> pathCache = new HashMap<String, Integer>();
     private static HashMap<String, Integer> fieldCache = new HashMap<String, Integer>();
     private static HashMap<String, Integer> collectorCache = new HashMap<String, Integer>();
@@ -127,7 +129,7 @@ abstract class ResultAccessor {
                 }
             }
         } else {
-            String err = "Missing dir: '${resultDir.absolutePath}' for sim: '${run.name}' (if test system: probly OK)"  //PMO-2814
+            String err = MISSING_DIR_PREFIX + " '${resultDir.absolutePath}' \nfor sim: '${run.name}' \n(if test system: probly OK)"  //PMO-2814
             LOG.warn(err)
             throw new IllegalStateException(err)
         }
