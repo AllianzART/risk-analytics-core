@@ -95,6 +95,9 @@ public abstract class ReportFactory {
 
             exporter.setParameter(JRExporterParameter.JASPER_PRINT, jasperPrint);
             exporter.exportReport();
+        } catch(UnsupportedReportParameterException urpe ){
+            // AR-61 UnsupportedReportParameterException is already handled in CreateReportAction, so don't divert it
+            throw urpe;
         } catch (Exception e) {
             throw new RuntimeException("Failed to create Jasper report: " +
                     e.getMessage()
