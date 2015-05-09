@@ -83,13 +83,15 @@ public abstract class ReportFactory {
     }
 
     public static byte[] createReport(IReportModel reportModel, IReportData reportData, JRExporter exporter) {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        exporter.setParameter(JRExporterParameter.OUTPUT_STREAM, byteArrayOutputStream);
+        ByteArrayOutputStream reportOutputStream = new ByteArrayOutputStream();
+        exporter.setParameter(JRExporterParameter.OUTPUT_STREAM, reportOutputStream);
 
         try {
             JasperReport jasperReport = (JasperReport) JRLoader.loadObject(reportModel.getMainReportFile());
             jasperReport.setWhenNoDataType(jasperReport.WHEN_NO_DATA_TYPE_ALL_SECTIONS_NO_DETAIL);
-            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, reportModel.getParameters(reportData), reportModel.getDataSource(reportData));
+            java.util.Map parameters = reportModel.getParameters(reportData);
+            JRDataSource dataSource = reportModel.getDataSource(reportData);
+            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, dataSource);
 
             exporter.setParameter(JRExporterParameter.JASPER_PRINT, jasperPrint);
             exporter.exportReport();
@@ -100,7 +102,7 @@ public abstract class ReportFactory {
                     + "\nreportData: " + reportData, e);
         }
 
-        return byteArrayOutputStream.toByteArray();
+        return reportOutputStream.toByteArray();
 
     }
 
