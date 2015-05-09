@@ -58,7 +58,7 @@ abstract class ResultAccessor {
 
         int  linesWrote = 0;
         long bytesWrote = 0;
-        try {
+//        try {
             OutputStream csvOutputStream = null;
             try {
                 csvOutputStream = new DataOutputStream( new BufferedOutputStream(new FileOutputStream(csvFile)) );
@@ -95,11 +95,11 @@ abstract class ResultAccessor {
                     csvOutputStream.close();
                 }
             }
-        }
-        catch(Exception ex){
-            LOG.warn(ex);
-            throw ex
-        }
+//        }
+//        catch(Exception ex){
+//            LOG.warn(ex);
+//            throw ex
+//        }
     }
 
     // Result paths for SINGLE collector strategy are excluded
