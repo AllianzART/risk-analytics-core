@@ -1,5 +1,5 @@
 //Use a custom plugins dir, because different branches use different plugin versions
-grails.project.plugins.dir = "../local-plugins/RiskAnalyticsCore-master"
+grails.project.plugins.dir = "../local-plugins/RiskAnalyticsCore-release-1.10"
 
 grails.project.dependency.resolver = "maven"
 
@@ -85,6 +85,7 @@ grails.project.dependency.distribution = {
             scpUrl = properties.get("url")
         }
     } catch (Throwable t) {
+        println "BuildConfig grails.project.dependency.distribution threw: ${t.getMessage()}"
     }
     remoteRepository(id: "pillarone", url: scpUrl) {
         authentication username: user, password: password
