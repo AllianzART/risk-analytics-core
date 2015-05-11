@@ -2,7 +2,7 @@ package org.pillarone.riskanalytics.core.simulation.engine.grid
 
 import grails.util.Holders
 import groovy.transform.CompileStatic
-import org.apache.ignite.compute.ComputeJobContinuationAdapter
+import org.apache.ignite.compute.ComputeJobAdapter
 import org.apache.log4j.MDC
 import org.codehaus.groovy.grails.commons.DefaultGrailsApplication
 import org.joda.time.DateTimeZone
@@ -20,7 +20,9 @@ import org.springframework.beans.factory.config.BeanDefinition
 import org.springframework.context.support.GenericApplicationContext
 
 @CompileStatic
-class SimulationJob extends ComputeJobContinuationAdapter {
+class SimulationJob extends ComputeJobAdapter implements Serializable {
+
+    private static final long serialVersionUID = 0L;
 
     protected SimulationConfiguration simulationConfiguration
     private SimulationRunner runner = SimulationRunner.createRunner()
