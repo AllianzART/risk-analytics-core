@@ -89,17 +89,14 @@ abstract class ResultAccessor {
                     ifa.close()
                 }
                 return fileName
+            } catch( FileNotFoundException e ){
+                throw new IllegalStateException(e)
             }
             finally {
                 if(csvOutputStream != null){
                     csvOutputStream.close();
                 }
             }
-//        }
-//        catch(Exception ex){
-//            LOG.warn(ex);
-//            throw ex
-//        }
     }
 
     // Result paths for SINGLE collector strategy are excluded
