@@ -18,7 +18,7 @@ public class ResultTransferListener implements IgniteBiPredicate<UUID, ResultTra
     @Override
     public boolean apply(UUID uuid, ResultTransferObject resultTransferObject) {
         try {
-            simulationTask.onMessage(resultTransferObject);
+            simulationTask.writeResult(resultTransferObject);
         } catch (Exception e) {
             simulationTask.getSimulationErrors().add(e);
             simulationTask.setSimulationState(SimulationState.ERROR);

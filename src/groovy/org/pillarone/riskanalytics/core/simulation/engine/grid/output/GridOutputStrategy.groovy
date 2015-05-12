@@ -83,11 +83,13 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
         return this
     }
 
-    protected void sendResults() {
+    protected synchronized void sendResults() {
         for (Map.Entry<ResultDescriptor, ByteArrayOutputStream> entry : streamCache.entrySet()) {
             ResultDescriptor resultDescriptor = entry.key
             ByteArrayOutputStream stream = entry.value
-            getGrid().message().send("dataSendTopic", new ResultTransferObject(resultDescriptor, jobIdentifier, stream.toByteArray(),
+
+            Ignite ignite = getGrid()
+            ignite.message(ignite.cluster().forNodeId(masterNodeId)).send("dataSendTopic", new ResultTransferObject(resultDescriptor, jobIdentifier, stream.toByteArray(),
                     runner.getProgress()))
             totalMessages++
             stream.reset()

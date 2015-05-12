@@ -7,12 +7,10 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.IgniteMessaging;
-import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.compute.ComputeJob;
 import org.apache.ignite.compute.ComputeJobResult;
-import org.apache.ignite.compute.ComputeTaskAdapter;
+import org.apache.ignite.compute.ComputeTaskSplitAdapter;
 import org.apache.log4j.MDC;
-import org.jetbrains.annotations.Nullable;
 import org.joda.time.DateTime;
 import org.pillarone.riskanalytics.core.cli.ImportStructureInTransaction;
 import org.pillarone.riskanalytics.core.components.DataSourceDefinition;
@@ -23,8 +21,6 @@ import org.pillarone.riskanalytics.core.parameterization.ParameterizationHelper;
 import org.pillarone.riskanalytics.core.simulation.SimulationState;
 import org.pillarone.riskanalytics.core.simulation.engine.ResultData;
 import org.pillarone.riskanalytics.core.simulation.engine.SimulationConfiguration;
-import org.pillarone.riskanalytics.core.simulation.engine.grid.mapping.AbstractNodeMappingStrategy;
-import org.pillarone.riskanalytics.core.simulation.engine.grid.mapping.INodeMappingStrategy;
 import org.pillarone.riskanalytics.core.simulation.engine.grid.output.JobResult;
 import org.pillarone.riskanalytics.core.simulation.engine.grid.output.ResultDescriptor;
 import org.pillarone.riskanalytics.core.simulation.engine.grid.output.ResultTransferObject;
@@ -37,11 +33,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, Object> {
+public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfiguration, Boolean> {
 
     private static Log LOG = LogFactory.getLog(SimulationTask.class);
 
-    public static final int SIMULATION_BLOCK_SIZE = 1000;
     public static final int MESSAGE_TIMEOUT = 60000;
 
     private AtomicInteger messageCount = new AtomicInteger(0);
@@ -61,19 +56,23 @@ public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, 
     private List<UUID> jobIds = new ArrayList<UUID>();
     private ResultTransferListener resultTransferListener;
 
-    @Nullable
+    /**
+     * Splits the received SimulationConfiguration in blocks, creates a child job for each blocks, and sends
+     * these simulation blocks to other nodes for processing.
+     *
+     * @param clusterSize Number of available cluster nodes. Note that returned number of
+     *      jobs can be less, equal or greater than this cluster size.
+     * @param simulationConfiguration Task execution argument. Can be {@code null}.
+     * @return The list of child jobs.
+     */
     @Override
-    public Map<? extends ComputeJob, ClusterNode> map(List<ClusterNode> subgrid, SimulationConfiguration simulationConfiguration) throws IgniteException {
+    protected Collection<? extends ComputeJob> split(int clusterSize, SimulationConfiguration simulationConfiguration) throws IgniteException {
+        if (clusterSize < 1) {
+            throw new IllegalStateException("No grid gain nodes found! Contact support.");
+        }
         try {
             this.simulationConfiguration = simulationConfiguration;
             initMDCForLoggingAndLogInUser();
-            INodeMappingStrategy strategy = AbstractNodeMappingStrategy.getStrategy();
-            List<ClusterNode> nodes = new ArrayList<ClusterNode>(strategy.filterNodes(subgrid));
-            if (nodes.isEmpty()) {
-                throw new IllegalStateException("No grid gain nodes found! Contact support.");
-            }
-            Map<SimulationJob, ClusterNode> jobsToNodes = new HashMap<SimulationJob, ClusterNode>(nodes.size());
-            HashMap<Integer, List<SimulationJob>> jobCountPerGrid = new HashMap<Integer, List<SimulationJob>>();
 
             if (!cancelled) {
                 setSimulationState(SimulationState.INITIALIZING);
@@ -94,23 +93,13 @@ public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, 
             dataSource.load(dataSourceDefinitions, simulationConfiguration.getSimulation());
             simulationConfiguration.setResultDataSource(dataSource);
 
-            Ignite grid = Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class);
-            int cpuCount = strategy.getTotalCpuCount(nodes);
+            final Ignite ignite = Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class);
+            final UUID headNodeId = ignite.cluster().localNode().id();
 
-            List<SimulationBlock> simulationBlocks = generateBlocks(SIMULATION_BLOCK_SIZE, simulationConfiguration.getSimulation().getNumberOfIterations());
+            List<SimulationBlock> simulationBlocks = generateBlocks(simulationConfiguration.getSimulation().getNumberOfIterations(), clusterSize);
 
             LOG.info("Generated " + simulationBlocks.size() + " blocks; Sim=" + simulationConfiguration.getSimulation().getName());
             List<SimulationJob> jobs = new ArrayList<SimulationJob>();
-            List<SimulationConfiguration> configurations = new ArrayList<SimulationConfiguration>(cpuCount);
-
-            for (int i = 0; i < cpuCount; i++) {
-                SimulationConfiguration newConfiguration = simulationConfiguration.clone();
-                configurations.add(newConfiguration);
-            }
-
-            for (int i = 0; i < simulationBlocks.size(); i++) {
-                configurations.get(i % cpuCount).addSimulationBlock(simulationBlocks.get(i));
-            }
 
             List<Resource> allResources = ParameterizationHelper.collectUsedResources(simulationConfiguration.getSimulation().getRuntimeParameters());
             allResources.addAll(ParameterizationHelper.collectUsedResources(simulationConfiguration.getSimulation().getParameterization().getParameters()));
@@ -118,44 +107,32 @@ public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, 
             for (Resource resource : allResources) {
                 resource.load();
             }
-            for (int i = 0; i < Math.min(cpuCount, simulationBlocks.size()); i++) {
+
+            for (int i = 0; i < simulationBlocks.size(); i++) {
+                SimulationConfiguration newConfiguration = simulationConfiguration.clone();
+                newConfiguration.addSimulationBlock(simulationBlocks.get(i));
+
                 UUID jobId = UUID.randomUUID();
-                SimulationJob job = new SimulationJob(configurations.get(i), jobId, grid.cluster().localNode().id());
+                SimulationJob job = new SimulationJob(newConfiguration, jobId, headNodeId);
                 job.setAggregatorMap(PacketAggregatorRegistry.getAllAggregators());
                 job.setLoadedResources(allResources);
                 jobIds.add(jobId);
                 jobs.add(job);
-                LOG.info("Created a new job with block count " + configurations.get(i).getSimulationBlocks().size());
+                LOG.info("Created a new job with block count " + newConfiguration.getSimulationBlocks().size());
             }
 
             resultWriter = new ResultWriter(simulationConfiguration.getSimulation().getId());
-            IgniteMessaging message = grid.message();
             resultTransferListener = new ResultTransferListener(this);
+            IgniteMessaging message = ignite.message();
             message.localListen("dataSendTopic", resultTransferListener);
+
             if (!cancelled) {
                 setSimulationState(SimulationState.RUNNING);
             }
             totalJobs = jobs.size();
 
-            for (int i = 0; i < jobs.size(); i++) {
-                int gridNumber = i % nodes.size();
-                jobsToNodes.put(jobs.get(i), nodes.get(gridNumber));
-                List<SimulationJob> tmpList;
-                if ((tmpList = jobCountPerGrid.get(gridNumber)) == null) {
-                    tmpList = new ArrayList<SimulationJob>();
-                    jobCountPerGrid.put(gridNumber, tmpList);
-                }
-                tmpList.add(jobs.get(i));
-            }
-
-            for (int i : jobCountPerGrid.keySet()) {
-                List<SimulationJob> tmpList = jobCountPerGrid.get(i);
-                for (SimulationJob simulationJob : tmpList) {
-                    simulationJob.setJobCount(tmpList.size());
-                }
-            }
             simulationConfiguration.getSimulation().save();
-            return jobsToNodes;
+            return jobs;
         } catch (Exception e) {
             getSimulation().delete();
             simulationErrors.add(e);
@@ -176,9 +153,8 @@ public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, 
         MDC.put("simulation", simulationConfiguration.getSimulation().getParameterization().getNameAndVersion());
     }
 
-    @Nullable
     @Override
-    public Object reduce(List<ComputeJobResult> gridJobResults) throws IgniteException {
+    public Boolean reduce(List<ComputeJobResult> gridJobResults) throws IgniteException {
         try {
             initMDCForLoggingAndLogInUser();
             int totalMessageCount = 0;
@@ -229,6 +205,7 @@ public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, 
             Ignite ignite = Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class);
             IgniteMessaging message = ignite.message();
             message.stopLocalListen("dataSendTopic", resultTransferListener);
+
             if (error || cancelled) {
                 simulation.delete();
                 if (!cancelled) {
@@ -263,8 +240,7 @@ public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, 
 
     }
 
-    public synchronized void onMessage(Object serializable) {
-        ResultTransferObject result = (ResultTransferObject) serializable;
+    public synchronized void writeResult(ResultTransferObject result) {
         LOG.debug("got result from resultTransferListener: " + result.getProgress() + "Will now write result ....");
         long before = System.currentTimeMillis();
         if (!jobIds.contains(result.getJobIdentifier())) {
@@ -339,23 +315,29 @@ public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, 
         return null;
     }
 
-    private List<SimulationBlock> generateBlocks(int blockSize, int iterations) {
+    protected List<SimulationBlock> generateBlocks(int iterations, int clusterSize) {
+        int blockSize = iterations / clusterSize;
+        int rest = iterations % clusterSize;
         List<SimulationBlock> simBlocks = new ArrayList<SimulationBlock>();
         int iterationOffset = 0;
         int streamOffset = 0;
-        int j = 0;
-        for (int i = blockSize; i < iterations; i += blockSize) {
+
+        final int blockSizeAndRest = blockSize + rest;
+        simBlocks.add(new SimulationBlock(iterationOffset, blockSizeAndRest, streamOffset));
+        iterationOffset += blockSizeAndRest;
+        streamOffset = nextStreamOffset(streamOffset);
+
+        for (int i = blockSizeAndRest; i < iterations; i += blockSize) {
             simBlocks.add(new SimulationBlock(iterationOffset, blockSize, streamOffset));
             iterationOffset += blockSize;
-            streamOffset = nextOffset(streamOffset);
-            j++;
+            streamOffset = nextStreamOffset(streamOffset);
         }
-        simBlocks.add(new SimulationBlock(iterationOffset, iterations - j * blockSize, streamOffset));
         return simBlocks;
     }
 
-    private int nextOffset(int currentOffset) {
+    protected int nextStreamOffset(int currentOffset) {
         currentOffset++;
+        //first ten of each block of hundred substreams are reserved for business logic
         while ((currentOffset >= 100 && currentOffset % 100 < 10)) {
             currentOffset++;
         }
