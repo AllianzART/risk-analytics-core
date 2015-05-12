@@ -37,7 +37,7 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
 
     private static Log LOG = LogFactory.getLog(SimulationTask.class);
 
-    public static final int MESSAGE_TIMEOUT = 60000;
+    public static final int MESSAGE_TIMEOUT = 80000;
 
     private AtomicInteger messageCount = new AtomicInteger(0);
     private ResultWriter resultWriter;
@@ -178,6 +178,7 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
             Simulation simulation = simulationConfiguration.getSimulation();
 
             synchronized (this) {
+                LOG.info("Waiting for " + totalMessageCount + " result messages.");
                 while (messageCount.get() < totalMessageCount) {
                     long timeout = System.currentTimeMillis();
                     if (LOG.isDebugEnabled()) {

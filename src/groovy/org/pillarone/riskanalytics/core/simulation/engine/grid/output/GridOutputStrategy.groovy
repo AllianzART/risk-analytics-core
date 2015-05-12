@@ -44,7 +44,7 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
     }
 
     ICollectorOutputStrategy leftShift(List<SingleValueResultPOJO> results) {
-        LOG.debug("Received ${results.size()} results...")
+        LOG.info("Received ${results.size()} results...")
         HashMap<ResultDescriptor, List<IterationValue>> singleResults = new HashMap<ResultDescriptor, List<IterationValue>>();
         int iteration;
         for (SingleValueResultPOJO result in results) {
@@ -94,7 +94,7 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
             totalMessages++
             stream.reset()
         }
-        LOG.debug("Sent results back for ${streamCache.size()} streams. Total count: ${totalMessages}")
+        LOG.info("Sent results back to master node (id:${masterNodeId}) for ${streamCache.size()} streams. Total count: ${totalMessages}.")
         streamCache.clear()
         resultCount = 0
     }
