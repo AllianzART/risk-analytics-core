@@ -1,6 +1,7 @@
 package org.pillarone.riskanalytics.core.simulation.engine
 import org.apache.ignite.Ignite
 import org.apache.ignite.IgniteCompute
+import org.apache.ignite.cluster.ClusterGroup
 import org.apache.ignite.compute.ComputeTaskFuture
 import org.pillarone.riskanalytics.core.queue.AbstractQueueService
 import org.pillarone.riskanalytics.core.queue.IQueueTaskFuture
@@ -32,7 +33,8 @@ class SimulationQueueService extends AbstractQueueService<SimulationConfiguratio
     @Override
     IQueueTaskFuture doWork(SimulationQueueEntry entry, int priority) {
         SimulationQueueTaskContext context = entry.context
-        IgniteCompute compute = ignite.compute().withAsync() //TODO Create ClusterGroup according mapping strategy here
+        ClusterGroup clusterGroup = ignite.cluster().forLocal() //TODO Create ClusterGroup according mapping strategy here
+        IgniteCompute compute = ignite.compute(clusterGroup).withAsync()
         compute.execute(context.simulationTask, context.simulationTask.simulationConfiguration)
         ComputeTaskFuture future = compute.future()
         return new SimulationQueueTaskFuture(future, context)
