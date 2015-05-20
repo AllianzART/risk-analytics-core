@@ -124,7 +124,7 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
             resultWriter = new ResultWriter(simulationConfiguration.getSimulation().getId());
             resultTransferListener = new ResultTransferListener(this);
             IgniteMessaging message = ignite.message();
-            message.localListen("dataSendTopic", resultTransferListener);
+            message.localListen(null, resultTransferListener);
 
             if (!cancelled) {
                 setSimulationState(SimulationState.RUNNING);
@@ -193,7 +193,7 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
                         Thread.currentThread().interrupt();
                         break;
                     }
-                    LOG.debug("got new message. messageCount: " + messageCount.get() + "/totalMessageCount: " + totalMessageCount);
+                    LOG.info("got new message. messageCount: " + messageCount.get() + "/totalMessageCount: " + totalMessageCount);
                     if (System.currentTimeMillis() - timeout > MESSAGE_TIMEOUT) {
                         error = true;
                         simulationErrors.add(new TimeoutException("Not all messages received - timeout reached"));

@@ -89,7 +89,7 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
             ByteArrayOutputStream stream = entry.value
 
             Ignite ignite = getGrid()
-            ignite.message(ignite.cluster().forNodeId(masterNodeId)).send("dataSendTopic", new ResultTransferObject(resultDescriptor, jobIdentifier, stream.toByteArray(),
+            ignite.message(ignite.cluster().forNodeId(masterNodeId)).send(null, new ResultTransferObject(resultDescriptor, jobIdentifier, stream.toByteArray(),
                     runner.getProgress()))
             totalMessages++
             stream.reset()
