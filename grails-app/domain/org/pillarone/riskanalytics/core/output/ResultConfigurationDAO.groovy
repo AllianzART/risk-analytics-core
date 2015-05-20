@@ -52,4 +52,10 @@ class ResultConfigurationDAO {
             eq('modelClassName', modelClassName)
         }
     }
+
+    // AR-111 temporary scaffolding - bridge accessor for java code to call
+    //
+    public Collection<CollectorInformation> getCollectorInformationBridge(){
+        return collectorInformation
+    }
 }
