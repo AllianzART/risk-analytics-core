@@ -71,6 +71,7 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
         if (clusterSize < 1) {
             throw new IllegalStateException("No grid gain nodes found! Contact support.");
         }
+        LOG.info("Splitting work amongst " + clusterSize + " nodes in cluster.");
         try {
             this.simulationConfiguration = simulationConfiguration;
             initMDCForLoggingAndLogInUser();
@@ -194,7 +195,7 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
                         Thread.currentThread().interrupt();
                         break;
                     }
-                    LOG.debug("got new message. messageCount: " + messageCount.get() + "/totalMessageCount: " + totalMessageCount);
+                    LOG.info("got new message. messageCount: " + messageCount.get() + "/totalMessageCount: " + totalMessageCount);
                     if (System.currentTimeMillis() - timeout > MESSAGE_TIMEOUT) {
                         error = true;
                         simulationErrors.add(new TimeoutException("Not all messages received - timeout reached"));

@@ -34,7 +34,7 @@ class SimulationQueueService extends AbstractQueueService<SimulationConfiguratio
     IQueueTaskFuture doWork(SimulationQueueEntry entry, int priority) {
         SimulationQueueTaskContext context = entry.context
         ClusterGroup clusterGroup = ignite.cluster().forLocal() //TODO Create ClusterGroup according mapping strategy here
-        IgniteCompute compute = ignite.compute(clusterGroup).withAsync()
+        IgniteCompute compute = ignite.compute().withAsync() // no clusterGroup arg ==> use all nodes
         compute.execute(context.simulationTask, context.simulationTask.simulationConfiguration)
         ComputeTaskFuture future = compute.future()
         return new SimulationQueueTaskFuture(future, context)
