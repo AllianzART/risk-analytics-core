@@ -70,6 +70,7 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
         if (clusterSize < 1) {
             throw new IllegalStateException("No grid gain nodes found! Contact support.");
         }
+        LOG.info("Splitting work amongst " + clusterSize + " nodes in cluster.");
         try {
             this.simulationConfiguration = simulationConfiguration;
             initMDCForLoggingAndLogInUser();
