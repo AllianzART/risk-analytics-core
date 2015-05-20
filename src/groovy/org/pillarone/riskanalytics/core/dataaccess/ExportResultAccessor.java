@@ -43,21 +43,39 @@ public class ExportResultAccessor {
         long fieldId = ResultAccessor.getFieldId(field);
         long collectorId = ResultAccessor.getCollectorId(collector);
 
+/**AR-111 temporary block START
+** This is a temporary workaround to allow us to access results on the file system coming from
+**  collectors not marked as SINGLE (i.e. filename suffix != 2)
+**
+** It has some BUILD PROBLEMS due to (I guess, given the workaround) groovyc not having yet compiled a couple of
+** classes this file now need when it's passing this one to javac. Namely:
+**    Problem: javac cannot find symbol getCollectorInformation in ResultConfigurationDAO,
+**    Workaround: Shelve the changeset that introduced this bit of code. Compile. Unshelve, and recompile WITHOUT
+**               CLEANING FIRST. Now it will build.
+**
+** Here we are storing the collectorId's for the collectors present in the simulation.
+**  These will be the ones to be tried out as an alternative to SINGLE, if SINGLE isn't present
+**  (the only call to this method currently in the code passes a hardcoded SINGLE)
+**/
+
         Set<Long> alternativeCollectorIds = new HashSet<Long>();
         for (CollectorInformation ci: run.getResultConfiguration().getCollectorInformation()) {
-            alternativeCollectorIds.add(new Long(ResultAccessor.getCollectorId(ci.getCollectingStrategyIdentifier())));
+            alternativeCollectorIds.add(Long.valueOf(ResultAccessor.getCollectorId(ci.getCollectingStrategyIdentifier())));
         }
         alternativeCollectorIds.remove(4);
         alternativeCollectorIds.remove(collectorId);
+/*AR-111 tmporary block PAUSE*/
 
         for (int i = 0; i < run.getPeriodCount(); i++) {
             File f = new File(GridHelper.getResultPathLocation(ResultAccessor.getRunIDFromSimulation(run) , pathId, fieldId, collectorId, i));
+/*AR-111 temporary block RESTART - Same thing as the one above...*/
             if (!f.exists()) { // if there's no "SINGLE" result...
                 for (long cId: alternativeCollectorIds){
                     f = new File(GridHelper.getResultPathLocation(ResultAccessor.getRunIDFromSimulation(run) , pathId, fieldId, cId, i));
                     if (f.exists()) break; //when we find a collector id that matches the filename, we're good!
                 }
             }
+/*AR-111 temporary block END*/
             IterationFileAccessor ifa = null;
             try {
                 ifa = new IterationFileAccessor(f);
