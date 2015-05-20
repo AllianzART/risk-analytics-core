@@ -7,6 +7,7 @@ import org.pillarone.riskanalytics.core.output.SimulationRun;
 import org.pillarone.riskanalytics.core.output.SingleValueResultPOJO;
 import org.pillarone.riskanalytics.core.simulation.engine.grid.GridHelper;
 import org.pillarone.riskanalytics.core.output.ResultConfigurationDAO;
+import org.pillarone.riskanalytics.core.simulation.item.ResultConfiguration;
 
 
 import java.io.File;
@@ -59,7 +60,16 @@ public class ExportResultAccessor {
 **/
 
         Set<Long> alternativeCollectorIds = new HashSet<Long>();
-        for (CollectorInformation ci: run.getResultConfiguration().getCollectorInformation()) {
+
+        // the getCollectorInformationBridge() method is probably the wrong direction to take.. instead we need to figure out
+        //how to load the result config from the DB ie use the DAO approach... here is some vague starting sketch..
+//        ResultConfigurationDAO dao = run.getResultConfiguration();
+//        ResultConfiguration resultConfiguration = new ResultConfiguration(dao.getName(),dao.getModel().getClass() );
+//        if( !resultConfiguration.isLoaded() ){
+//            resultConfiguration.load();
+//        }
+
+        for (CollectorInformation ci: run.getResultConfiguration().getCollectorInformationBridge()) {
             alternativeCollectorIds.add(Long.valueOf(ResultAccessor.getCollectorId(ci.getCollectingStrategyIdentifier())));
         }
         alternativeCollectorIds.remove(4);
