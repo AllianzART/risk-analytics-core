@@ -1,14 +1,14 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid.mapping
+
 import groovy.transform.CompileStatic
-import org.apache.ignite.cluster.ClusterNode
+import org.apache.ignite.Ignite
+import org.apache.ignite.cluster.ClusterGroup
 
 @CompileStatic
 class AllNodesStrategy extends AbstractNodeMappingStrategy {
 
     @Override
-    Set<ClusterNode> filterNodes(List<ClusterNode> allNodes) {
-        return allNodes.toSet()
+    ClusterGroup getUsableNodes(Ignite ignite) {
+        return ignite.cluster()
     }
-
-
 }

@@ -1,6 +1,8 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid.mapping
 
 import groovy.transform.CompileStatic
+import org.apache.ignite.Ignite
+import org.apache.ignite.cluster.ClusterGroup
 import org.apache.ignite.cluster.ClusterNode
 
 /**
@@ -14,23 +16,10 @@ import org.apache.ignite.cluster.ClusterNode
 @CompileStatic
 class RemoteNodesMappingStrategy extends AbstractNodeMappingStrategy {
 
-
     @Override
-    Set<ClusterNode> filterNodes(List<ClusterNode> allNodes) {
-
-        Set<ClusterNode> remoteNodes = new HashSet<ClusterNode>();
-
-        ClusterNode localNode = grid.cluster().localNode();
-        Collection<String> localAddresses = localNode.addresses();
-
-        for (ClusterNode node in allNodes) {
-            Collection<String> nodeAddresses = node.addresses()
-            if (!nodeAddresses.any { localAddresses.contains(it) }) {
-                remoteNodes.add(node);
-            }
-        }
-
-        return remoteNodes;
-
+    ClusterGroup getUsableNodes(Ignite ignite) {
+        ClusterNode localNode = ignite.cluster().localNode()
+        ClusterGroup localNodes = ignite.cluster().forHost(localNode)
+        return ignite.cluster().forOthers(localNodes)
     }
 }

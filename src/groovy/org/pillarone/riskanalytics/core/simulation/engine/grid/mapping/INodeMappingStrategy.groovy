@@ -1,10 +1,9 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid.mapping
-import org.apache.ignite.cluster.ClusterNode
+
+import org.apache.ignite.Ignite
+import org.apache.ignite.cluster.ClusterGroup
 
 public interface INodeMappingStrategy {
 
-    int getTotalCpuCount(List<ClusterNode> usableNodes)
-
-    Set<ClusterNode> filterNodes(List<ClusterNode> allNodes)
-
+    ClusterGroup getUsableNodes(Ignite ignite)
 }
