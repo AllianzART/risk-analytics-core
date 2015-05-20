@@ -2,13 +2,18 @@ package org.pillarone.riskanalytics.core.dataaccess;
 
 import org.joda.time.DateTime;
 import org.pillarone.riskanalytics.core.RiskAnalyticsResultAccessException;
+import org.pillarone.riskanalytics.core.output.CollectorInformation;
 import org.pillarone.riskanalytics.core.output.SimulationRun;
 import org.pillarone.riskanalytics.core.output.SingleValueResultPOJO;
 import org.pillarone.riskanalytics.core.simulation.engine.grid.GridHelper;
+import org.pillarone.riskanalytics.core.output.ResultConfigurationDAO;
+
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * author simon.parten @ art-allianz . com
@@ -38,8 +43,21 @@ public class ExportResultAccessor {
         long fieldId = ResultAccessor.getFieldId(field);
         long collectorId = ResultAccessor.getCollectorId(collector);
 
+        Set<Long> alternativeCollectorIds = new HashSet<Long>();
+        for (CollectorInformation ci: run.getResultConfiguration().getCollectorInformation()) {
+            alternativeCollectorIds.add(new Long(ResultAccessor.getCollectorId(ci.getCollectingStrategyIdentifier())));
+        }
+        alternativeCollectorIds.remove(4);
+        alternativeCollectorIds.remove(collectorId);
+
         for (int i = 0; i < run.getPeriodCount(); i++) {
             File f = new File(GridHelper.getResultPathLocation(ResultAccessor.getRunIDFromSimulation(run) , pathId, fieldId, collectorId, i));
+            if (!f.exists()) { // if there's no "SINGLE" result...
+                for (long cId: alternativeCollectorIds){
+                    f = new File(GridHelper.getResultPathLocation(ResultAccessor.getRunIDFromSimulation(run) , pathId, fieldId, cId, i));
+                    if (f.exists()) break; //when we find a collector id that matches the filename, we're good!
+                }
+            }
             IterationFileAccessor ifa = null;
             try {
                 ifa = new IterationFileAccessor(f);
