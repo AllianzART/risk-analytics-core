@@ -1,4 +1,6 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid.output
+
+import grails.util.Holders
 import groovy.transform.CompileStatic
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
@@ -6,7 +8,7 @@ import org.apache.ignite.Ignite
 import org.pillarone.riskanalytics.core.output.ICollectorOutputStrategy
 import org.pillarone.riskanalytics.core.output.SingleValueResultPOJO
 import org.pillarone.riskanalytics.core.simulation.engine.SimulationRunner
-import org.pillarone.riskanalytics.core.simulation.engine.grid.GridHelper
+import org.pillarone.riskanalytics.core.simulation.engine.grid.SimulationTask
 import org.pillarone.riskanalytics.core.util.GroovyUtils
 
 @CompileStatic
@@ -34,7 +36,7 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
 
     private Ignite getGrid() {
         if (grid == null) {
-            grid = GridHelper.getGrid()
+            grid = Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class)
         }
         return grid
     }
@@ -87,9 +89,8 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
         for (Map.Entry<ResultDescriptor, ByteArrayOutputStream> entry : streamCache.entrySet()) {
             ResultDescriptor resultDescriptor = entry.key
             ByteArrayOutputStream stream = entry.value
-
             Ignite ignite = getGrid()
-            ignite.message(ignite.cluster().forNodeId(masterNodeId)).send("dataSendTopic", new ResultTransferObject(resultDescriptor, jobIdentifier, stream.toByteArray(),
+            ignite.message(ignite.cluster().forNodeId(masterNodeId)).send(SimulationTask.DATA_SEND_TOPIC, new ResultTransferObject(resultDescriptor, jobIdentifier, stream.toByteArray(),
                     runner.getProgress()))
             totalMessages++
             stream.reset()

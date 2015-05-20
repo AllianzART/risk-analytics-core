@@ -35,9 +35,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfiguration, Boolean> {
 
+    public static final String DATA_SEND_TOPIC = "dataSendTopic";
     private static Log LOG = LogFactory.getLog(SimulationTask.class);
 
-    public static final int MESSAGE_TIMEOUT = 80000;
+    public static final int MESSAGE_TIMEOUT = 60000;
 
     private AtomicInteger messageCount = new AtomicInteger(0);
     private ResultWriter resultWriter;
@@ -124,7 +125,7 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
             resultWriter = new ResultWriter(simulationConfiguration.getSimulation().getId());
             resultTransferListener = new ResultTransferListener(this);
             IgniteMessaging message = ignite.message();
-            message.localListen("dataSendTopic", resultTransferListener);
+            message.localListen(DATA_SEND_TOPIC, resultTransferListener);
 
             if (!cancelled) {
                 setSimulationState(SimulationState.RUNNING);
@@ -205,7 +206,7 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
 
             Ignite ignite = Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class);
             IgniteMessaging message = ignite.message();
-            message.stopLocalListen("dataSendTopic", resultTransferListener);
+            message.stopLocalListen(DATA_SEND_TOPIC, resultTransferListener);
 
             if (error || cancelled) {
                 simulation.delete();

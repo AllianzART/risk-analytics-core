@@ -6,7 +6,6 @@ import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 import org.apache.ignite.Ignite
 import org.apache.ignite.cluster.ClusterNode
-import org.pillarone.riskanalytics.core.simulation.engine.grid.GridHelper
 
 @CompileStatic
 abstract class AbstractNodeMappingStrategy implements INodeMappingStrategy {
@@ -18,7 +17,7 @@ abstract class AbstractNodeMappingStrategy implements INodeMappingStrategy {
     private static final Log LOG = LogFactory.getLog(AbstractNodeMappingStrategy)
 
     AbstractNodeMappingStrategy() {
-        this.grid = GridHelper.getGrid()
+        this.grid = Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class)
     }
 
     @Override
