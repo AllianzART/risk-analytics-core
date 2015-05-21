@@ -133,6 +133,7 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
     }
 
     private class TaskListener implements IQueueTaskListener {
+        @Override
         void apply(IQueueTaskFuture future) {
             queueTaskFinished(future)
         }

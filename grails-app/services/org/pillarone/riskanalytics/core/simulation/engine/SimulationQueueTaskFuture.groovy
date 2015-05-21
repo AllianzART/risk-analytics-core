@@ -1,30 +1,30 @@
 package org.pillarone.riskanalytics.core.simulation.engine
 
 import org.apache.ignite.compute.ComputeTaskFuture
-import org.apache.ignite.internal.util.typedef.CI1
+import org.apache.ignite.lang.IgniteInClosure
 import org.pillarone.riskanalytics.core.queue.IQueueTaskFuture
 import org.pillarone.riskanalytics.core.queue.IQueueTaskListener
 
 class SimulationQueueTaskFuture implements IQueueTaskFuture {
 
-    Map<IQueueTaskListener, CI1<ComputeTaskFuture>> gridListeners = [:]
-    private final ComputeTaskFuture gridTaskFuture
+    Map<IQueueTaskListener, IgniteInClosure<ComputeTaskFuture<Boolean>>> gridListeners = [:]
+    private final ComputeTaskFuture<Boolean> gridTaskFuture
     private final SimulationQueueTaskContext context
 
-    SimulationQueueTaskFuture(ComputeTaskFuture gridTaskFuture, SimulationQueueTaskContext context) {
+    SimulationQueueTaskFuture(ComputeTaskFuture<Boolean> gridTaskFuture, SimulationQueueTaskContext context) {
         this.context = context
         this.gridTaskFuture = gridTaskFuture
     }
 
     @Override
-    void stopListen(IQueueTaskListener taskListener) {
-        gridListeners.remove(taskListener)
+    void stopListen(IQueueTaskListener queueTaskListener) {
+        gridListeners.remove(queueTaskListener)
     }
 
     @Override
-    void listen(IQueueTaskListener uploadTaskListener) {
-        TaskListener taskListener = new TaskListener(uploadTaskListener, this)
-        gridListeners.put(uploadTaskListener, taskListener)
+    void listen(IQueueTaskListener queueTaskListener) {
+        TaskListener taskListener = new TaskListener(queueTaskListener, this)
+        gridListeners.put(queueTaskListener, taskListener)
         gridTaskFuture.listen(taskListener)
     }
 
@@ -39,7 +39,7 @@ class SimulationQueueTaskFuture implements IQueueTaskFuture {
         gridListeners.keySet().each { it.apply(this) }
     }
 
-    private static class TaskListener implements CI1<ComputeTaskFuture> {
+    private static class TaskListener implements IgniteInClosure<ComputeTaskFuture<Boolean>> {
         IQueueTaskListener taskListener
         IQueueTaskFuture queueTaskFuture
 
@@ -49,7 +49,7 @@ class SimulationQueueTaskFuture implements IQueueTaskFuture {
         }
 
         @Override
-        void apply(ComputeTaskFuture future) {
+        void apply(ComputeTaskFuture<Boolean> booleanComputeTaskFuture) {
             taskListener.apply(queueTaskFuture)
         }
     }
