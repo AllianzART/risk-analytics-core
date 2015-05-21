@@ -56,7 +56,7 @@ public class ExportResultAccessor {
                 FileFilter filter = new WildcardFileFilter(pathId + "_" + i + "_" + fieldId + "_*");
                 fileList = dir.listFiles(filter);
                 if (fileList != null) {
-                    f = fileList[0];
+                    if (fileList.length > 0) f = fileList[0];
                     if (fileList.length > 1) throw new RiskAnalyticsResultAccessException("(AR-111 non-SINGLE) More than one file for "+path+" at period "+ i);
                 }
             }
