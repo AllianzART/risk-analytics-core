@@ -1,5 +1,6 @@
 package org.pillarone.riskanalytics.core.dataaccess;
 
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.joda.time.DateTime;
 import org.pillarone.riskanalytics.core.RiskAnalyticsResultAccessException;
 import org.pillarone.riskanalytics.core.output.CollectorInformation;
@@ -11,6 +12,7 @@ import org.pillarone.riskanalytics.core.simulation.item.ResultConfiguration;
 
 
 import java.io.File;
+import java.io.FileFilter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -43,49 +45,23 @@ public class ExportResultAccessor {
         long pathId = ResultAccessor.getPathId(path);
         long fieldId = ResultAccessor.getFieldId(field);
         long collectorId = ResultAccessor.getCollectorId(collector);
-
-/**AR-111 temporary block START
-** This is a temporary workaround to allow us to access results on the file system coming from
-**  collectors not marked as SINGLE (i.e. filename suffix != 2)
-**
-** It has some BUILD PROBLEMS due to (I guess, given the workaround) groovyc not having yet compiled a couple of
-** classes this file now need when it's passing this one to javac. Namely:
-**    Problem: javac cannot find symbol getCollectorInformation in ResultConfigurationDAO,
-**    Workaround: Shelve the changeset that introduced this bit of code. Compile. Unshelve, and recompile WITHOUT
-**               CLEANING FIRST. Now it will build.
-**
-** Here we are storing the collectorId's for the collectors present in the simulation.
-**  These will be the ones to be tried out as an alternative to SINGLE, if SINGLE isn't present
-**  (the only call to this method currently in the code passes a hardcoded SINGLE)
-**/
-
-        Set<Long> alternativeCollectorIds = new HashSet<Long>();
-
-        // the getCollectorInformationBridge() method is probably the wrong direction to take.. instead we need to figure out
-        //how to load the result config from the DB ie use the DAO approach... here is some vague starting sketch..
-//        ResultConfigurationDAO dao = run.getResultConfiguration();
-//        ResultConfiguration resultConfiguration = new ResultConfiguration(dao.getName(),dao.getModel().getClass() );
-//        if( !resultConfiguration.isLoaded() ){
-//            resultConfiguration.load();
-//        }
-
-        for (CollectorInformation ci: run.getResultConfiguration().getCollectorInformationBridge()) {
-            alternativeCollectorIds.add(Long.valueOf(ResultAccessor.getCollectorId(ci.getCollectingStrategyIdentifier())));
-        }
-        alternativeCollectorIds.remove(4);
-        alternativeCollectorIds.remove(collectorId);
-/*AR-111 tmporary block PAUSE*/
+        long runId =  ResultAccessor.getRunIDFromSimulation(run);
 
         for (int i = 0; i < run.getPeriodCount(); i++) {
-            File f = new File(GridHelper.getResultPathLocation(ResultAccessor.getRunIDFromSimulation(run) , pathId, fieldId, collectorId, i));
-/*AR-111 temporary block RESTART - Same thing as the one above...*/
+            File f = new File(GridHelper.getResultPathLocation(runId , pathId, fieldId, collectorId, i));
+            File[] fileList = {f};
+/*Initial wildcard-based solution*/
             if (!f.exists()) { // if there's no "SINGLE" result...
-                for (long cId: alternativeCollectorIds){
-                    f = new File(GridHelper.getResultPathLocation(ResultAccessor.getRunIDFromSimulation(run) , pathId, fieldId, cId, i));
-                    if (f.exists()) break; //when we find a collector id that matches the filename, we're good!
+                File dir = new File(GridHelper.getResultLocation(runId));
+                FileFilter filter = new WildcardFileFilter(pathId + "_" + i + "_" + fieldId + "_*");
+                fileList = dir.listFiles(filter);
+                if (fileList != null) {
+                    f = fileList[0];
+                    if (fileList.length > 1) throw new RiskAnalyticsResultAccessException("(AR-111 non-SINGLE) More than one file for "+path+" at period "+ i);
                 }
             }
 /*AR-111 temporary block END*/
+
             IterationFileAccessor ifa = null;
             try {
                 ifa = new IterationFileAccessor(f);
