@@ -5,6 +5,7 @@ import org.apache.commons.lang.builder.HashCodeBuilder
 import org.pillarone.riskanalytics.core.ModelDAO
 import org.pillarone.riskanalytics.core.SimulationProfileDAO
 import org.pillarone.riskanalytics.core.model.Model
+import org.pillarone.riskanalytics.core.output.CollectingModeFactory
 import org.pillarone.riskanalytics.core.output.CollectorFactory
 import org.pillarone.riskanalytics.core.output.CollectorInformation
 import org.pillarone.riskanalytics.core.output.ICollectingModeStrategy
