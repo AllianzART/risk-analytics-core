@@ -72,6 +72,10 @@ public class SimulationConfiguration implements Serializable, Cloneable {
         preparedSimulation.template = new ResultConfiguration(simulation.template.name, simulation.template.modelClass)
         preparedSimulation.template.versionNumber = simulation.template.versionNumber
         preparedSimulation.template.collectors = simulation.template.collectors
+        for (PacketCollector packetCollector : preparedSimulation.template.collectors) {
+            packetCollector.allInputTransmitter.clear()
+            packetCollector.allOutputTransmitter.clear()
+        }
 
         preparedSimulation.structure = ModelStructure.getStructureForModel(simulation.modelClass)
         preparedSimulation.modelVersionNumber = simulation.modelVersionNumber
