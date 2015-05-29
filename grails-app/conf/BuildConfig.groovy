@@ -45,8 +45,8 @@ grails.project.dependency.resolution = {
         }
         compile("org.apache.xmlbeans:xmlbeans:2.3.0")
 
-        compile 'ca.umontreal.iro:ssj:2.5', {
-            excludes "dsol-xml"
+        compile('ca.umontreal.iro:ssj:2.5') {
+            exclude "dsol-xml"
         }
         compile 'commons-cli:commons-cli:1.2'
 
