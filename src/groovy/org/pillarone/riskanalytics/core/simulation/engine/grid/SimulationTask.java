@@ -1,7 +1,6 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid;
 
 import grails.plugin.springsecurity.SpringSecurityUtils;
-import grails.util.Holders;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.ignite.Ignite;
@@ -95,7 +94,7 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
             dataSource.load(dataSourceDefinitions, simulationConfiguration.getSimulation());
             simulationConfiguration.setResultDataSource(dataSource);
 
-            final Ignite ignite = Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class);
+            final Ignite ignite = GridHelper.getGrid();
             final UUID headNodeId = ignite.cluster().localNode().id();
 
             List<SimulationBlock> simulationBlocks = generateBlocks(simulationConfiguration.getSimulation().getNumberOfIterations(), clusterSize);
@@ -205,7 +204,7 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
             }
             resultWriter.close();
 
-            Ignite ignite = Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class);
+            Ignite ignite = GridHelper.getGrid();
             IgniteMessaging message = ignite.message();
             message.stopLocalListen(DATA_SEND_TOPIC, resultTransferListener);
 

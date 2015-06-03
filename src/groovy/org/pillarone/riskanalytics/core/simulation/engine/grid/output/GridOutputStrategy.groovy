@@ -1,6 +1,5 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid.output
 
-import grails.util.Holders
 import groovy.transform.CompileStatic
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
@@ -8,6 +7,7 @@ import org.apache.ignite.Ignite
 import org.pillarone.riskanalytics.core.output.ICollectorOutputStrategy
 import org.pillarone.riskanalytics.core.output.SingleValueResultPOJO
 import org.pillarone.riskanalytics.core.simulation.engine.SimulationRunner
+import org.pillarone.riskanalytics.core.simulation.engine.grid.GridHelper
 import org.pillarone.riskanalytics.core.simulation.engine.grid.SimulationTask
 import org.pillarone.riskanalytics.core.util.GroovyUtils
 
@@ -36,7 +36,7 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
 
     private Ignite getGrid() {
         if (grid == null) {
-            grid = Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class)
+            grid = GridHelper.getGrid()
         }
         return grid
     }
@@ -46,7 +46,7 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
     }
 
     ICollectorOutputStrategy leftShift(List<SingleValueResultPOJO> results) {
-        LOG.info("Received ${results.size()} results...")
+        LOG.debug("Received ${results.size()} results...")
         HashMap<ResultDescriptor, List<IterationValue>> singleResults = new HashMap<ResultDescriptor, List<IterationValue>>();
         int iteration;
         for (SingleValueResultPOJO result in results) {
