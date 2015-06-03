@@ -1,6 +1,8 @@
 package org.pillarone.riskanalytics.core.simulation.engine.grid;
 
 import grails.util.Holders;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
 import org.pillarone.riskanalytics.core.FileConstants;
@@ -9,10 +11,13 @@ import java.io.File;
 
 public class GridHelper {
 
+    private static Log LOG = LogFactory.getLog(GridHelper.class);
+
     public static Ignite getGrid() {
         try {
-            return Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class);
+            return Holders.getGrailsApplication().getMainContext().getBean(Ignite.class);
         } catch (Exception e) {
+            LOG.warn("Failed to lookup bean for Ignite class, falling back on Ignition.start()");
             return Ignition.start();
         }
     }
