@@ -11,13 +11,13 @@ import java.io.File;
 
 public class GridHelper {
 
-    private static final Log LOG = LogFactory.getLog(GridHelper.class);
+    private static Log LOG = LogFactory.getLog(GridHelper.class);
 
     public static Ignite getGrid() {
         try {
-            return Holders.getGrailsApplication().getMainContext().getBean("ignite", Ignite.class);
+            return Holders.getGrailsApplication().getMainContext().getBean(Ignite.class);
         } catch (Exception e) {
-            LOG.info("Using 'Ignition.start()'");
+            LOG.warn("Failed to lookup bean for Ignite class, falling back on Ignition.start()");
             return Ignition.start();
         }
     }
