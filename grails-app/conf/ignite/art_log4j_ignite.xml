@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration debug="false" xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+    <!--
+        Log DEBUG and higher to STDOUT, redirected (via cronolog) into the logfile.
+        old: <param name="ConversionPattern" value="%d{yyyyMMdd HH:mm:ss,SSS}GG - %t (%X{username}) - %-5p %c{1} %m%n"/>
+            <param name="levelMax" value="INFO"/>
+    -->
+    <appender class="org.apache.log4j.ConsoleAppender" name="CONSOLE">
+        <param name="Target" value="System.out"/>
+        <param name="Threshold" value="DEBUG"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy.MM.dd HH:mm:ss,SSS}-%t- %-5p %c{1} %m%n"/>
+        </layout>
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="levelMin" value="DEBUG"/>
+        </filter>
+    </appender>
+
+    <!--
+        Log from WARN and higher to STDERR.
+    -->
+    <appender class="org.apache.log4j.ConsoleAppender" name="CONSOLE_ERR">
+        <param name="Target" value="System.err"/>
+        <param name="Threshold" value="WARN"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy.MM.dd HH:mm:ss,SSS}-%t- %-5p %c{1} %m%n"/>
+        </layout>
+    </appender>
+
+    <!--
+        Logs all output to specified file.
+        By default, the logging goes to GRIDGAIN_HOME/work/log folder
+
+        Note, this appender is disabled by default.
+        To enable, uncomment the section below and also FILE appender in the <root> element.
+    <appender class="org.apache.log4j.RollingFileAppender" name="FILE">
+        <param name="Threshold" value="DEBUG"/>
+        <param name="File" value="${user.home}/.pillarone/RiskAnalytics/logs/gridNode_5.log"/>
+        <param name="Append" value="true"/>
+        <param name="MaxFileSize" value="10MB"/>
+        <param name="MaxBackupIndex" value="10"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy.MM.dd HH:mm:ss,SSS}-%t- %-5p %c{1} %m%n"/>
+        </layout>
+    </appender>
+    -->
+    <category name="org.springframework">
+        <level value="WARN"/>
+    </category>
+    <category name="org.jboss.serial">
+        <level value="WARN"/>
+    </category>
+    <category name="org.eclipse.jetty">
+        <level value="FATAL"/>
+    </category>
+    <category name="com.amazonaws">
+        <level value="WARN"/>
+    </category>
+    <!-- Default settings. -->
+    <root>
+        <!-- Print out all info by default. -->
+        <level value="INFO"/>
+        <!-- Append to console. -->
+        <appender-ref ref="CONSOLE"/>
+        <!-- Uncomment to enable logging to a file. -->
+		<!--
+        <appender-ref ref="CONSOLE_ERR"/>
+        <appender-ref ref="FILE"/>
+		-->
+    </root>
+</log4j:configuration>
+<!--
+    Default log4j configuration for Ignite adapted for Artisan
+-->

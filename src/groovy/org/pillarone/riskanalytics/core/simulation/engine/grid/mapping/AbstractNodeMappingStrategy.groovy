@@ -27,7 +27,7 @@ abstract class AbstractNodeMappingStrategy implements INodeMappingStrategy {
                     return new LocalNodesStrategy()
                 }
             }
-
+            LOG.info("Using grid node mapping strategy: $strategy")
             return (INodeMappingStrategy) strategy.newInstance()
         } catch (Exception e) {
             LOG.error("failed to find $strategy. Switch to LocalNodesStrategy", e)
