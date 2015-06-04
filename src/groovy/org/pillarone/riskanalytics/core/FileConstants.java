@@ -18,7 +18,7 @@ public class FileConstants {
     public static final String IGNITE_HOME;
 
     static {
-        boolean appendVersion = !Configuration.getBoolean("dataDirectoryIndependentOfVersion", false);
+        boolean appendVersion = !Configuration.getBoolean("dataDirectoryIndependentOfVersion", true);
 
         String baseDir = System.getProperty("p1.temp");
         StringBuilder builder = new StringBuilder(baseDir != null ? baseDir : System.getProperty("user.home"));
