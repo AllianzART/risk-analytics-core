@@ -37,6 +37,7 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
     public static final String DATA_SEND_TOPIC = "dataSendTopic";
     private static Log LOG = LogFactory.getLog(SimulationTask.class);
 
+    public static final int SIMULATION_BLOCK_SIZE = 1000;
     public static final int MESSAGE_TIMEOUT = 60000;
 
     private AtomicInteger messageCount = new AtomicInteger(0);
@@ -97,7 +98,7 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
             final Ignite ignite = GridHelper.getGrid();
             final UUID headNodeId = ignite.cluster().localNode().id();
 
-            List<SimulationBlock> simulationBlocks = generateBlocks(simulationConfiguration.getSimulation().getNumberOfIterations(), clusterSize);
+            List<SimulationBlock> simulationBlocks = generateBlocks(simulationConfiguration.getSimulation().getNumberOfIterations());
 
             LOG.info("Generated " + simulationBlocks.size() + " blocks; Sim=" + simulationConfiguration.getSimulation().getName());
             List<SimulationJob> jobs = new ArrayList<SimulationJob>();
@@ -317,22 +318,20 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
         return null;
     }
 
-    protected List<SimulationBlock> generateBlocks(int iterations, int clusterSize) {
-        int blockSize = iterations / clusterSize;
-        int rest = iterations % clusterSize;
+    protected List<SimulationBlock> generateBlocks(final int iterations) {
+        final int numberOfFullBlocks = iterations / SIMULATION_BLOCK_SIZE;
+        final int rest = iterations % SIMULATION_BLOCK_SIZE;
         List<SimulationBlock> simBlocks = new ArrayList<SimulationBlock>();
-        int iterationOffset = 0;
         int streamOffset = 0;
+        int iterationOffset = 0;
 
-        final int blockSizeAndRest = blockSize + rest;
-        simBlocks.add(new SimulationBlock(iterationOffset, blockSizeAndRest, streamOffset));
-        iterationOffset += blockSizeAndRest;
-        streamOffset = nextStreamOffset(streamOffset);
-
-        for (int i = blockSizeAndRest; i < iterations; i += blockSize) {
-            simBlocks.add(new SimulationBlock(iterationOffset, blockSize, streamOffset));
-            iterationOffset += blockSize;
+        for (int i = 0; i < numberOfFullBlocks; i++) {
+            simBlocks.add(new SimulationBlock(iterationOffset, SIMULATION_BLOCK_SIZE, streamOffset));
+            iterationOffset += SIMULATION_BLOCK_SIZE;
             streamOffset = nextStreamOffset(streamOffset);
+        }
+        if (rest != 0) {
+            simBlocks.add(new SimulationBlock(iterationOffset, rest, streamOffset));
         }
         return simBlocks;
     }

@@ -4,6 +4,7 @@ import groovy.transform.CompileStatic
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 import org.pillarone.riskanalytics.core.components.PeriodStore
+import org.pillarone.riskanalytics.core.simulation.engine.grid.SimulationTask
 
 /**
  * The IterationScope provides information that is valid throughout a single iteration.
@@ -30,7 +31,7 @@ public class IterationScope {
     }
 
     public boolean isFirstIteration() {
-        currentIteration == 1
+        currentIteration % SimulationTask.SIMULATION_BLOCK_SIZE == 1
     }
 
     public String toString() {
