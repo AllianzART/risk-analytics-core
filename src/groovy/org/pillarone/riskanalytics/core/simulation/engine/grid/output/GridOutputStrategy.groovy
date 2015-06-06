@@ -95,7 +95,7 @@ class GridOutputStrategy implements ICollectorOutputStrategy, Serializable {
             totalMessages++
             stream.reset()
         }
-        LOG.info("Sent results back to master node (id:${masterNodeId}) for ${streamCache.size()} streams. Total count: ${totalMessages}.")
+        LOG.debug("Sent results back to master node (id:${masterNodeId}) for ${streamCache.size()} streams. Total count: ${totalMessages}.")
         streamCache.clear()
         resultCount = 0
     }
