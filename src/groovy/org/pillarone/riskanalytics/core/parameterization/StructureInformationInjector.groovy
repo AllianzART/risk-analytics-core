@@ -31,6 +31,12 @@ class StructureInformationInjector extends ModelInjector {
         if (configObject.containsKey("periodCount")) {
             periodCount = configObject.periodCount
         }
+        //note on strange closure error seen in local runs with 1000+ iterations
+        //configObject.company always empty on deployed webapp
+        //but has 9 entries on second block in local run where failure occurs
+        //probably it's bad code that is never exercised except on a local run for some reason
+        //recall: we never could run more than 999 iters on a local run even with GG3
+        //even worse is that the groovy closures cannot be debugged..
         if (!configObject.isEmpty()) {
             configObject.company.each {line, value ->
                 configObject.company[line].components.each {component, propertyValue ->
