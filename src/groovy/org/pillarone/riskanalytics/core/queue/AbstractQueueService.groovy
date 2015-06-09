@@ -107,8 +107,9 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
     }
 
     private void poll() {
+
         synchronized (lock) {
-            LOG.info( "Entered poll (got lock) in thread " + Thread.currentThread().getName() )
+//            LOG.info( "Entered poll (got lock) in thread " + Thread.currentThread().getName() )
             if (!busy) {
                 if (currentTask) {
                     throw new IllegalStateException("Want to start new job. But there is still a running one")
@@ -122,7 +123,7 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
                     future.listen(taskListener)
                 }
             }
-            LOG.info( "Leaving poll (dropping lock) in thread " + Thread.currentThread().getName() )
+//            LOG.info( "Leaving poll (dropping lock) in thread " + Thread.currentThread().getName() )
         }
     }
 
