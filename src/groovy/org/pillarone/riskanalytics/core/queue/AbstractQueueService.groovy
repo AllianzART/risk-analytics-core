@@ -1,11 +1,14 @@
 package org.pillarone.riskanalytics.core.queue
 
 import com.google.common.base.Preconditions
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
 
 import javax.annotation.PostConstruct
 import javax.annotation.PreDestroy
 
 abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQueueService<Q> {
+    private static final Log LOG = LogFactory.getLog(AbstractQueueService)
 
     protected final PriorityQueue<Q> queue = new PriorityQueue<Q>()
     protected final Object lock = new Object()
@@ -47,11 +50,16 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
     }
 
     void offer(K configuration, int priority = 5) {
-        preConditionCheck(configuration)
-        synchronized (lock) {
-            Q queueEntry = createQueueEntry(configuration, priority)
-            queue.offer(queueEntry)
-            support.notifyOffered(queueEntry)
+        try{
+            preConditionCheck(configuration)
+            synchronized (lock) {
+                Q queueEntry = createQueueEntry(configuration, priority)
+                queue.offer(queueEntry)
+                support.notifyOffered(queueEntry)
+            }
+        } catch(Throwable t){
+            LOG.error("Unexpected exception seen: $t.message",t)
+            throw t
         }
 
     }
