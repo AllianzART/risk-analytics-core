@@ -53,9 +53,11 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
         try{
             preConditionCheck(configuration)
             synchronized (lock) {
+                LOG.info( "Entered offer (got lock) in thread " + Thread.currentThread().getName() )
                 Q queueEntry = createQueueEntry(configuration, priority)
                 queue.offer(queueEntry)
                 support.notifyOffered(queueEntry)
+                LOG.info( "Leaving offer (dropping lock) in thread " + Thread.currentThread().getName() )
             }
         } catch(Throwable t){
             LOG.error("Unexpected exception seen: $t.message",t)
@@ -73,6 +75,7 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
     void cancel(UUID uuid) {
         Preconditions.checkNotNull(uuid)
         synchronized (lock) {
+            LOG.info( "Entered cancel (got lock) in thread " + Thread.currentThread().getName() )
             if (currentTask?.entry?.id == uuid) {
                 currentTask.future.cancel()
                 return
@@ -80,27 +83,32 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
             if (queue.remove(createQueueEntry(uuid))) {
                 support.notifyRemoved(uuid)
             }
+            LOG.info( "Leaving cancel (dropping lock) in thread " + Thread.currentThread().getName() )
         }
     }
 
     List<Q> getQueueEntries() {
         synchronized (lock) {
-            queue.toArray().toList() as List<Q>
+            LOG.info( "Entered/leaving getQueueEntries in thread " + Thread.currentThread().getName() )
+            return queue.toArray().toList() as List<Q>
         }
     }
 
     List<Q> getQueueEntriesIncludingCurrentTask() {
         synchronized (lock) {
+            LOG.info( "Entered getQueueEntriesIncludingCurrentTask (got lock) in thread " + Thread.currentThread().getName() )
             List<Q> allEntries = queue.toArray().toList() as List<Q>
             if (currentTask) {
                 allEntries.add(0, currentTask.entry)
             }
-            allEntries
+            LOG.info( "Leaving getQueueEntriesIncludingCurrentTask (dropping lock) in thread " + Thread.currentThread().getName() )
+            return allEntries
         }
     }
 
     private void poll() {
         synchronized (lock) {
+            LOG.info( "Entered poll (got lock) in thread " + Thread.currentThread().getName() )
             if (!busy) {
                 if (currentTask) {
                     throw new IllegalStateException("Want to start new job. But there is still a running one")
@@ -114,6 +122,7 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
                     future.listen(taskListener)
                 }
             }
+            LOG.info( "Leaving poll (dropping lock) in thread " + Thread.currentThread().getName() )
         }
     }
 
@@ -121,6 +130,7 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
 
     private void queueTaskFinished(IQueueTaskFuture future) {
         synchronized (lock) {
+            LOG.info( "Entered queueTaskFinished (got lock) in thread " + Thread.currentThread().getName() )
             if (!currentTask) {
                 throw new IllegalStateException('simulation ended, but there is no currentTask')
             }
@@ -130,6 +140,7 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
             future.stopListen(taskListener)
             handleEntry(entry)
             support.notifyFinished(entry.id)
+            LOG.info( "Leaving queueTaskFinished (dropping lock) in thread " + Thread.currentThread().getName() )
         }
     }
 
