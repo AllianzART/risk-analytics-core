@@ -1,7 +1,7 @@
 import org.apache.ignite.IgniteSpringBean
 import org.apache.ignite.configuration.IgniteConfiguration
 import org.apache.ignite.marshaller.optimized.OptimizedMarshaller
-import org.apache.ignite.spi.collision.fifoqueue.FifoQueueCollisionSpi
+import org.apache.ignite.spi.collision.noop.NoopCollisionSpi
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder
 import org.apache.ignite.spi.failover.never.NeverFailoverSpi
@@ -100,9 +100,7 @@ Persistence & Simulation engine.
         resultServiceBean(ResultService) {}
 
         //start ignite config
-        igniteCollisionSpi(FifoQueueCollisionSpi) {
-            parallelJobsNumber = 1
-        }
+        igniteCollisionSpi(NoopCollisionSpi)
 
         igniteFailoverSpi(NeverFailoverSpi)
 

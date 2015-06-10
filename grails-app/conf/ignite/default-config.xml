@@ -57,9 +57,7 @@
         </property>
 
         <property name="collisionSpi">
-            <bean class="org.apache.ignite.spi.collision.fifoqueue.FifoQueueCollisionSpi">
-                <property name="parallelJobsNumber" value="1" />
-            </bean>
+            <bean class="org.apache.ignite.spi.collision.noop.NoopCollisionSpi"/>
         </property>
 
         <property name="discoverySpi">

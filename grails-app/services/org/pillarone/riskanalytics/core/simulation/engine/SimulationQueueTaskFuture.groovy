@@ -19,9 +19,6 @@ class SimulationQueueTaskFuture implements IQueueTaskFuture {
     @Override
     void stopListen(IQueueTaskListener queueTaskListener) {
         gridListeners.remove(queueTaskListener)
-        //NB there is no chance to do this anymore in ignite:
-        //gridTaskFuture.stopListenAsync(gridListener)
-        queueTaskListener.stopListen()
     }
 
     @Override
