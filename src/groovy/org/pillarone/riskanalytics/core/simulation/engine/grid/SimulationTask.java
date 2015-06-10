@@ -6,10 +6,12 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.IgniteMessaging;
+import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.compute.ComputeJob;
 import org.apache.ignite.compute.ComputeJobResult;
-import org.apache.ignite.compute.ComputeTaskSplitAdapter;
+import org.apache.ignite.compute.ComputeTaskAdapter;
 import org.apache.log4j.MDC;
+import org.jetbrains.annotations.Nullable;
 import org.joda.time.DateTime;
 import org.pillarone.riskanalytics.core.cli.ImportStructureInTransaction;
 import org.pillarone.riskanalytics.core.components.DataSourceDefinition;
@@ -32,7 +34,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfiguration, Boolean> {
+public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, Boolean> {
 
     public static final String DATA_SEND_TOPIC = "dataSendTopic";
     private static Log LOG = LogFactory.getLog(SimulationTask.class);
@@ -58,20 +60,28 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
     private ResultTransferListener resultTransferListener;
 
     /**
-     * Splits the received SimulationConfiguration in blocks, creates a child job for each blocks, and sends
-     * these simulation blocks to other nodes for processing.
+     * This method is called to map or split grid task into multiple grid jobs. This is the
+     * first method that gets called when task execution starts.
      *
-     * @param clusterSize Number of available cluster nodes. Note that returned number of
-     *      jobs can be less, equal or greater than this cluster size.
-     * @param simulationConfiguration Task execution argument. Can be {@code null}.
-     * @return The list of child jobs.
+     * @param simulationConfiguration Task execution argument. Can be {@code null}. This is the same argument
+     *      as the one passed into {@code Grid#execute(...)} methods.
+     * @param subgrid Nodes available for this task execution. Note that order of nodes is
+     *      guaranteed to be randomized by container. This ensures that every time
+     *      you simply iterate through grid nodes, the order of nodes will be random which
+     *      over time should result into all nodes being used equally.
+     * @return Map of grid jobs assigned to subgrid node. Unless {@link org.apache.ignite.compute.ComputeTaskContinuousMapper} is
+     *      injected into task, if {@code null} or empty map is returned, exception will be thrown.
+     * @throws IgniteException If mapping could not complete successfully. This exception will be
+     *      thrown out of {@link org.apache.ignite.compute.ComputeTaskFuture#get()} method.
      */
+    @Nullable
     @Override
-    protected Collection<? extends ComputeJob> split(int clusterSize, SimulationConfiguration simulationConfiguration) throws IgniteException {
-        if (clusterSize < 1) {
+    public Map<? extends ComputeJob, ClusterNode> map(List<ClusterNode> subgrid, SimulationConfiguration simulationConfiguration) throws IgniteException {
+
+        if (subgrid == null || subgrid.isEmpty()) {
             throw new IllegalStateException("No grid gain nodes found! Contact support.");
         }
-        LOG.info("Splitting work amongst " + clusterSize + " nodes in cluster.");
+        LOG.info("Splitting work amongst " + subgrid.size() + " nodes in cluster.");
         try {
             this.simulationConfiguration = simulationConfiguration;
             initMDCForLoggingAndLogInUser();
@@ -101,7 +111,6 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
             List<SimulationBlock> simulationBlocks = generateBlocks(simulationConfiguration.getSimulation().getNumberOfIterations());
 
             LOG.info("Generated " + simulationBlocks.size() + " blocks; Sim=" + simulationConfiguration.getSimulation().getName());
-            List<SimulationJob> jobs = new ArrayList<SimulationJob>();
 
             List<Resource> allResources = ParameterizationHelper.collectUsedResources(simulationConfiguration.getSimulation().getRuntimeParameters());
             allResources.addAll(ParameterizationHelper.collectUsedResources(simulationConfiguration.getSimulation().getParameterization().getParameters()));
@@ -109,6 +118,9 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
             for (Resource resource : allResources) {
                 resource.load();
             }
+
+            Map<SimulationJob, ClusterNode> jobToNode = new HashMap<SimulationJob, ClusterNode>();
+            Map<ClusterNode, Integer> nodeToJobCount = new HashMap<ClusterNode, Integer>();
 
             for (int i = 0; i < simulationBlocks.size(); i++) {
                 SimulationConfiguration newConfiguration = simulationConfiguration.clone();
@@ -118,9 +130,22 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
                 SimulationJob job = new SimulationJob(newConfiguration, jobId, headNodeId);
                 job.setAggregatorMap(PacketAggregatorRegistry.getAllAggregators());
                 job.setLoadedResources(allResources);
+                final int nodeNumber = i % subgrid.size();
+                final ClusterNode node = subgrid.get(nodeNumber);
+                jobToNode.put(job, node);
+                if(nodeToJobCount.containsKey(node)) {
+                    final Integer jobCount = nodeToJobCount.get(node);
+                    nodeToJobCount.put(node, jobCount + 1);
+                } else {
+                    nodeToJobCount.put(node, 1);
+                }
                 jobIds.add(jobId);
-                jobs.add(job);
+                totalJobs++;
                 LOG.info("Created a new job with block count " + newConfiguration.getSimulationBlocks().size());
+            }
+            for (Map.Entry<SimulationJob, ClusterNode> simulationJobClusterNodeEntry : jobToNode.entrySet()) {
+                final Integer jobCount = nodeToJobCount.get(simulationJobClusterNodeEntry.getValue());
+                simulationJobClusterNodeEntry.getKey().setJobCount(jobCount);
             }
 
             resultWriter = new ResultWriter(simulationConfiguration.getSimulation().getId());
@@ -131,10 +156,10 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
             if (!cancelled) {
                 setSimulationState(SimulationState.RUNNING);
             }
-            totalJobs = jobs.size();
 
             simulationConfiguration.getSimulation().save();
-            return jobs;
+
+            return jobToNode;
         } catch (Exception e) {
             getSimulation().delete();
             simulationErrors.add(e);
@@ -155,6 +180,20 @@ public class SimulationTask extends ComputeTaskSplitAdapter<SimulationConfigurat
         MDC.put("simulation", simulationConfiguration.getSimulation().getParameterization().getNameAndVersion());
     }
 
+    /**
+     * Reduces (or aggregates) results received so far into one compound result to be returned to
+     * caller via {@link org.apache.ignite.compute.ComputeTaskFuture#get()} method.
+     * <p>
+     * Note, that if some jobs did not succeed and could not be failed over then the list of
+     * results passed into this method will include the failed results. Otherwise, failed
+     * results will not be in the list.
+     *
+     * @param gridJobResults Received results of broadcasted remote executions. Note that if task class has
+     *      {@link org.apache.ignite.compute.ComputeTaskNoResultCache} annotation, then this list will be empty.
+     * @return Grid job result constructed from results of remote executions.
+     * @throws IgniteException If reduction or results caused an error. This exception will
+     *      be thrown out of {@link org.apache.ignite.compute.ComputeTaskFuture#get()} method.
+     */
     @Override
     public Boolean reduce(List<ComputeJobResult> gridJobResults) throws IgniteException {
         try {
