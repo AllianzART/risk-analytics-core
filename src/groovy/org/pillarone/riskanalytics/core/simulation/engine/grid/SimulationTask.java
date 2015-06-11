@@ -96,7 +96,6 @@ public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, 
             //if something does not work, we can move it back or remove the comment
             ImportStructureInTransaction.importStructure(simulationConfiguration);
             simulationConfiguration.createMappingCache(simulationConfiguration.getSimulation().getTemplate());
-            simulationConfiguration.prepareSimulationForGrid();
             simulationConfiguration.setBeans(SpringBeanDefinitionRegistry.getRequiredBeanDefinitions());
             simulationConfiguration.getSimulation().setStart(start);
 
@@ -124,6 +123,7 @@ public class SimulationTask extends ComputeTaskAdapter<SimulationConfiguration, 
 
             for (int i = 0; i < simulationBlocks.size(); i++) {
                 SimulationConfiguration newConfiguration = simulationConfiguration.clone();
+                newConfiguration.prepareSimulationForGrid();
                 newConfiguration.addSimulationBlock(simulationBlocks.get(i));
 
                 UUID jobId = UUID.randomUUID();
