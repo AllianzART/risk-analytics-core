@@ -90,7 +90,7 @@ public class SimulationRunner {
             synchronized (lockObj) {
                 messageCount.incrementAndGet();
                 LOG.info("Thread count:" + threadCount + " current:" + messageCount.get());
-                if(messageCount.get() == threadCount) {
+                if(messageCount.get() >= threadCount) {
                     messageCount.set(0);
                     lockObj.notifyAll();
                 } else {
