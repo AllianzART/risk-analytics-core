@@ -50,7 +50,6 @@ public class SimulationRunner {
     private int threadCount;
     private static AtomicInteger messageCount;
     private static final Object lockObj = new Object();
-    private static final int WAIT_TIMEOUT = 30000;
 
     private IPacketListener packetListener;
 
@@ -88,15 +87,14 @@ public class SimulationRunner {
                 packetListener.initComponentCache(currentScope.model);
             }
 
-            messageCount.incrementAndGet();
-            LOG.info("Thread count:" + threadCount + " current:" + messageCount.get());
             synchronized (lockObj) {
-                lockObj.notifyAll();
-            }
-
-            synchronized (lockObj) {
-                while (messageCount.get() < threadCount) {
-                    lockObj.wait(WAIT_TIMEOUT)
+                messageCount.incrementAndGet();
+                LOG.info("Thread count:" + threadCount + " current:" + messageCount.get());
+                if(messageCount.get() == threadCount) {
+                    messageCount.set(0);
+                    lockObj.notifyAll();
+                } else {
+                    lockObj.wait()
                 }
             }
 
@@ -110,7 +108,6 @@ public class SimulationRunner {
                 deleteCancelledSimulation()
                 shouldReturn = true
             }
-            messageCount.set(0);
             if (shouldReturn) return
             LOG.info "${currentScope.simulationBlocks.blockSize.sum()} iterations completed in ${System.currentTimeMillis() - (start + initializationTime)}ms"
 
