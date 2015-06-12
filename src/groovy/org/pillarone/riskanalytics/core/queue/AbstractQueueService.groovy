@@ -6,11 +6,12 @@ import org.apache.commons.logging.LogFactory
 
 import javax.annotation.PostConstruct
 import javax.annotation.PreDestroy
+import java.util.concurrent.PriorityBlockingQueue
 
 abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQueueService<Q> {
     private static final Log LOG = LogFactory.getLog(AbstractQueueService)
 
-    protected final PriorityQueue<Q> queue = new PriorityQueue<Q>()
+    protected final PriorityBlockingQueue<Q> queue = new PriorityBlockingQueue<Q>()
     protected final Object lock = new Object()
     protected CurrentTask<Q> currentTask
     protected TaskListener taskListener
@@ -52,13 +53,9 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
     void offer(K configuration, int priority = 5) {
         try{
             preConditionCheck(configuration)
-            synchronized (lock) {
-                LOG.info( "Entered offer (got lock) in thread " + Thread.currentThread().getName() )
                 Q queueEntry = createQueueEntry(configuration, priority)
                 queue.offer(queueEntry)
                 support.notifyOffered(queueEntry)
-                LOG.info( "Leaving offer (dropping lock) in thread " + Thread.currentThread().getName() )
-            }
         } catch(Throwable t){
             LOG.error("Unexpected exception seen: $t.message",t)
             throw t
