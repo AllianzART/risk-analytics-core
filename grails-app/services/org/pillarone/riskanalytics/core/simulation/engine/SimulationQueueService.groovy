@@ -1,4 +1,7 @@
 package org.pillarone.riskanalytics.core.simulation.engine
+
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
 import org.apache.ignite.Ignite
 import org.apache.ignite.IgniteCompute
 import org.apache.ignite.cluster.ClusterGroup
@@ -9,6 +12,7 @@ import org.pillarone.riskanalytics.core.simulation.SimulationState
 import org.pillarone.riskanalytics.core.simulation.engine.grid.mapping.AbstractNodeMappingStrategy
 
 class SimulationQueueService extends AbstractQueueService<SimulationConfiguration, SimulationQueueEntry> {
+    private static final Log LOG = LogFactory.getLog(SimulationQueueService)
 
     Ignite ignite
 
@@ -35,6 +39,8 @@ class SimulationQueueService extends AbstractQueueService<SimulationConfiguratio
     IQueueTaskFuture doWork(SimulationQueueEntry entry, int priority) {
         SimulationQueueTaskContext context = entry.context
         ClusterGroup clusterGroup = AbstractNodeMappingStrategy.getStrategy().getUsableNodes(ignite)
+        int numNodes = clusterGroup.findAll { it != null }.size()
+        LOG.info("Found $numNodes nodes in grid")
         IgniteCompute compute = ignite.compute(clusterGroup).withAsync()
         compute.execute(context.simulationTask, context.simulationTask.simulationConfiguration)
         ComputeTaskFuture future = compute.future()
@@ -51,6 +57,8 @@ class SimulationQueueService extends AbstractQueueService<SimulationConfiguratio
             case SimulationState.CANCELED:
                 break
             case SimulationState.NOT_RUNNING:
+                // TODO How can we learn that no grid nodes were available here ???
+                log.error("Sim never started. Maybe no usable nodes in grid?")
             case SimulationState.INITIALIZING:
             case SimulationState.RUNNING:
             case SimulationState.SAVING_RESULTS:
