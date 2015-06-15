@@ -39,8 +39,13 @@ class SimulationQueueService extends AbstractQueueService<SimulationConfiguratio
     IQueueTaskFuture doWork(SimulationQueueEntry entry, int priority) {
         SimulationQueueTaskContext context = entry.context
         ClusterGroup clusterGroup = AbstractNodeMappingStrategy.getStrategy().getUsableNodes(ignite)
-        int numNodes = clusterGroup.findAll { it != null }.size()
+        def numNodes = clusterGroup.nodes().size()
         LOG.info("Found $numNodes nodes in grid")
+        if (numNodes < 1){
+            LOG.error("No grid nodes available.")
+            context.simulationTask.simulationErrors.add(new IllegalStateException("No grid nodes available. Please contact support."))
+            context.simulationTask.simulationState = SimulationState.ERROR
+        }
         IgniteCompute compute = ignite.compute(clusterGroup).withAsync()
         compute.execute(context.simulationTask, context.simulationTask.simulationConfiguration)
         ComputeTaskFuture future = compute.future()
