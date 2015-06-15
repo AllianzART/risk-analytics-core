@@ -16,12 +16,13 @@ abstract class AbstractNodeMappingStrategy implements INodeMappingStrategy {
     public static INodeMappingStrategy getStrategy() {
         Class strategy = null
         try {
-            String mappingClass = System.getProperty(STRATEGY_CLASS_KEY)
-            if ( mappingClass ) {
-                LOG.info("Found -D$STRATEGY_CLASS_KEY=$mappingClass")
-                strategy = Thread.currentThread().contextClassLoader.loadClass(mappingClass)
+            String mappingClassSystemProperty = System.getProperty(STRATEGY_CLASS_KEY)
+            if ( mappingClassSystemProperty ) {
+                LOG.info("Found -D$STRATEGY_CLASS_KEY=$mappingClassSystemProperty")
+                strategy = Thread.currentThread().contextClassLoader.loadClass(mappingClassSystemProperty)
             } else {
-                strategy = (Class) Holders.config.get(STRATEGY_CLASS_KEY)
+                String mappingClassInConfig = Holders.config.get(STRATEGY_CLASS_KEY)
+                strategy = Thread.currentThread().contextClassLoader.loadClass(mappingClassInConfig)
                 if (!strategy) {
                     LOG.warn("no $STRATEGY_CLASS_KEY set in config - defaulting to LocalNodesStrategy")
                     return new LocalNodesStrategy()
