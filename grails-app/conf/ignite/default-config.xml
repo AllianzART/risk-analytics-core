@@ -56,6 +56,8 @@
             </bean>
         </property>
 
+        <property name="publicThreadPoolSize" value="100"/>
+
         <property name="collisionSpi">
             <bean class="org.apache.ignite.spi.collision.noop.NoopCollisionSpi"/>
         </property>
@@ -64,6 +66,7 @@
             <bean class="org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi">
 
                 <property name="ackTimeout" value="30000" />
+                <property name="maxAckTimeout" value="120000" />
 
                 <property name="ipFinder">
                     <bean class="org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder">
