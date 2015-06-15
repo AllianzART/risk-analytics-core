@@ -85,10 +85,8 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
     }
 
     List<Q> getQueueEntries() {
-        synchronized (lock) {
-            LOG.info( "Entered/leaving getQueueEntries in thread " + Thread.currentThread().getName() )
-            return queue.toArray().toList() as List<Q>
-        }
+        LOG.info( "Entered/leaving getQueueEntries in thread " + Thread.currentThread().getName() )
+        return queue.toArray().toList() as List<Q>
     }
 
     List<Q> getQueueEntriesIncludingCurrentTask() {
@@ -104,23 +102,22 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
     }
 
     private void poll() {
-
-        synchronized (lock) {
-//            LOG.info( "Entered poll (got lock) in thread " + Thread.currentThread().getName() )
-            if (!busy) {
-                if (currentTask) {
-                    throw new IllegalStateException("Want to start new job. But there is still a running one")
-                }
-                Q queueEntry = queue.poll()
-                if (queueEntry) {
-                    busy = true
-                    support.notifyStarting(queueEntry)
-                    IQueueTaskFuture future = doWork(queueEntry, queueEntry.priority)
-                    currentTask = new CurrentTask<Q>(future: future, entry: queueEntry)
-                    future.listen(taskListener)
+        if (!busy) {
+            synchronized (lock) {
+                if (!busy) {
+                    if (currentTask) {
+                        throw new IllegalStateException("Want to start new job. But there is still a running one")
+                    }
+                    Q queueEntry = queue.poll()
+                    if (queueEntry) {
+                        busy = true
+                        support.notifyStarting(queueEntry)
+                        IQueueTaskFuture future = doWork(queueEntry, queueEntry.priority)
+                        currentTask = new CurrentTask<Q>(future: future, entry: queueEntry)
+                        future.listen(taskListener)
+                    }
                 }
             }
-//            LOG.info( "Leaving poll (dropping lock) in thread " + Thread.currentThread().getName() )
         }
     }
 
