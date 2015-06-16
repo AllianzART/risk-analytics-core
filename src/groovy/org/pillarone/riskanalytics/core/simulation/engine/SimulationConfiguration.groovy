@@ -171,7 +171,7 @@ public class SimulationConfiguration implements Serializable, Cloneable {
         List<String> splitByPastVsFuturePaths = getDrillDownPaths(collectors, DrillDownMode.BY_UPDATEDATE)
         //Set<String> periodLabels = model.periodLabelsBeforeProjectionStart()   //not needed. Might need something similar
         //periodLabels.addAll PeriodLabelsUtil.getPeriodLabels(simulation, model)//if we want to include the update date in the paths...
-        return ModelHelper.pathsExtendedWithPeriod(splitByPastVsFuturePaths, [DrillDownMode.BY_UPDATEDATE.FROM_PAST, DrillDownMode.BY_UPDATEDATE.FROM_FUTURE]) //AR-111
+        return ModelHelper.pathsExtendedWithPeriod(splitByPastVsFuturePaths, [DrillDownMode.fromPastName, DrillDownMode.fromFutureName]) //AR-111
     }
 
     /*AR-111 end*/
