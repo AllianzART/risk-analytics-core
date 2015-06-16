@@ -14,25 +14,33 @@ abstract class AbstractNodeMappingStrategy implements INodeMappingStrategy {
 
     // Was dumb order of checking.. -D system property should take precedence over Config
     public static INodeMappingStrategy getStrategy() {
-        Class strategy = null
+        Class strategyClass = null
+        String nodeMappingStrategyClassName = null
         try {
-            String mappingClassSystemProperty = System.getProperty(STRATEGY_CLASS_KEY)
-            if ( mappingClassSystemProperty ) {
-                LOG.info("Found -D$STRATEGY_CLASS_KEY=$mappingClassSystemProperty")
-                strategy = Thread.currentThread().contextClassLoader.loadClass(mappingClassSystemProperty)
+            nodeMappingStrategyClassName = System.getProperty(STRATEGY_CLASS_KEY)
+            if ( nodeMappingStrategyClassName ) {
+                LOG.info("Found -D$STRATEGY_CLASS_KEY=$nodeMappingStrategyClassName")
+                strategyClass = Thread.currentThread().contextClassLoader.loadClass(nodeMappingStrategyClassName)
             } else {
-                String mappingClassInConfig = Holders.config.get(STRATEGY_CLASS_KEY)
-                strategy = Thread.currentThread().contextClassLoader.loadClass(mappingClassInConfig)
-                if (!strategy) {
-                    LOG.warn("no $STRATEGY_CLASS_KEY set in config - defaulting to LocalNodesStrategy")
-                    return new LocalNodesStrategy()
+                LOG.info("No system property -D$STRATEGY_CLASS_KEY; checking config..")
+                if( Holders.config.get(STRATEGY_CLASS_KEY) instanceof Class ){
+                    strategyClass = (Class) Holders.config.get(STRATEGY_CLASS_KEY)
+                    LOG.info("Found $STRATEGY_CLASS_KEY class in Config.groovy: ${strategyClass?.getSimpleName()}")
+                } else if (Holders.config.get(STRATEGY_CLASS_KEY) instanceof String ){
+                    nodeMappingStrategyClassName = Holders.config.get(STRATEGY_CLASS_KEY)
+                    LOG.info("Found $STRATEGY_CLASS_KEY classname in external config: $nodeMappingStrategyClassName")
+                    strategyClass = Thread.currentThread().contextClassLoader.loadClass(nodeMappingStrategyClassName)
+                }
+                if (!strategyClass) {
+                    LOG.warn("No $STRATEGY_CLASS_KEY found in any config src - Fallback to LocalNodesExcludingHeadStrategy")
+                    return new LocalNodesExcludingHeadStrategy()
                 }
             }
-            LOG.info("Using grid node mapping strategy: $strategy")
-            return (INodeMappingStrategy) strategy.newInstance()
+            LOG.info("Using grid node mapping strategy class: $strategyClass")
+            return (INodeMappingStrategy) strategyClass.newInstance()
         } catch (Exception e) {
-            LOG.error("failed to find $strategy. Switch to LocalNodesStrategy", e)
-            return new LocalNodesStrategy()
+            LOG.error("Failed to find class named $nodeMappingStrategyClassName. Fallback to LocalNodesExcludingHeadStrategy", e)
+            return new LocalNodesExcludingHeadStrategy()
         }
     }
 
