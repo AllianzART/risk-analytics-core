@@ -20,6 +20,25 @@ import java.util.TreeMap;
 public enum GlobalReportingFrequency {
 
     ANNUALLY {
+
+        @Override
+        public List<DateTime> getReportingDatesForPeriod(DateTime periodStart, DateTime periodEnd) {
+
+            ArrayList<DateTime> outputList = new ArrayList<DateTime>(1); //could pre-calc, but it's usually yearly...
+
+            periodEnd = periodEnd.minusMillis(1); //little trick to ensure this is always in with the minimum number of checks
+
+            for (DateTime reportingDate = periodStart.plusYears(1).minusMillis(1); reportingDate.isBefore(periodEnd);) {
+                outputList.add(reportingDate);
+            }
+
+            outputList.add(periodEnd);
+
+
+            return outputList;
+        }
+
+
         @Override
         public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope) {
 
@@ -29,6 +48,7 @@ public enum GlobalReportingFrequency {
             Map<Integer, List<DateTime>> periodReportDates = new TreeMap<Integer, List<DateTime>>();
 
             for (int period = 1; period <= periods; period++) {
+            // this thing just ASSUMES periods are annual!!!!! And it has checks for non-annual length periods elsewhere...
                 ArrayList<DateTime> reportingDates = new ArrayList<DateTime>();
                 DateTime reportingDate;
                 try {
@@ -51,6 +71,12 @@ public enum GlobalReportingFrequency {
 
     },
     DEFAULT {
+
+        @Override
+        public List<DateTime> getReportingDatesForPeriod(DateTime periodStart, DateTime periodEnd) {
+            throw new SimulationException("Not implemented, reporting frequency default choice should never be selected");
+        }
+
         @Override
         public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope) {
             throw new SimulationException("Not implemented, reporting frequency default choice should never be selected");
@@ -62,6 +88,25 @@ public enum GlobalReportingFrequency {
         }
 
     }, QUARTERLY {
+
+        @Override
+        public List<DateTime> getReportingDatesForPeriod(DateTime periodStart, DateTime periodEnd) {
+
+            ArrayList<DateTime> outputList = new ArrayList<DateTime>(4); //could pre-calc, but it's usually yearly...
+
+            periodEnd = periodEnd.minusMillis(1); //little trick to ensure this is always in with the minimum number of checks
+
+            for (DateTime reportingDate = periodStart.plusMonths(3).minusMillis(1); reportingDate.isBefore(periodEnd);) {
+                outputList.add(reportingDate);
+            }
+
+            outputList.add(periodEnd);
+
+
+            return outputList;
+        }
+
+
         @Override
         public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope) {
                         ILimitedPeriodCounter variableLengthPeriodCounter = (ILimitedPeriodCounter) periodScope.getPeriodCounter();
@@ -105,6 +150,24 @@ public enum GlobalReportingFrequency {
             }
         }
     }, MONTHLY {
+
+        @Override
+        public List<DateTime> getReportingDatesForPeriod(DateTime periodStart, DateTime periodEnd) {
+
+            ArrayList<DateTime> outputList = new ArrayList<DateTime>(12); //could pre-calc, but it's usually yearly...
+
+            periodEnd = periodEnd.minusMillis(1); //little trick to ensure this is always in with the minimum number of checks
+
+            for (DateTime reportingDate = periodStart.plusMonths(1).minusMillis(1); reportingDate.isBefore(periodEnd);) {
+                outputList.add(reportingDate);
+            }
+
+            outputList.add(periodEnd);
+
+
+            return outputList;
+        }
+
         @Override
         public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope) {
 
@@ -187,6 +250,19 @@ public enum GlobalReportingFrequency {
      * @return Annually; last day of period. Quartely, startDate plus 3 months, then the last day... Monthly; first day of period plus months until there are no more months.
      */
     public abstract Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope);
+    //toDo: turn this into a concrete method that calls the abstract method getReportinDatesForPeriod, which contains all the item-specific logic
+    // ... Would have done this in this commit but I want the team (including me) to test my code and see it reproduces the results of Simon's
+    //
+    //Other note: return type should probably be different:
+    //Since the Map keys are integers, spanning over the full [0, n] interval, an ArrayList would probably make more sense.
+    //I also think that Iterators over DateTime, rather than precalculated Lists, might be a good choice for the value type...
+    //If java had a "yield return" construct the code would be almost ready - need to check for syntactic sugar over iterators
+
+    public List<DateTime> getReportingDatesForCurrentPeriod(PeriodScope periodScope) {
+        return getReportingDatesForPeriod(periodScope.getCurrentPeriodStartDate(), periodScope.getNextPeriodStartDate());
+    }
+
+    public abstract List<DateTime> getReportingDatesForPeriod(DateTime periodStart, DateTime periodEnd);
 
     public abstract boolean isFirstReportDateInPeriod(Integer period, DateTime reportingDate, PeriodScope periodScope);
 }
