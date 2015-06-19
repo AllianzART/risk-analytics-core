@@ -1,7 +1,9 @@
-package org.pillarone.riskanalytics.core.simulation;
+package org.pillarone.riskanalytics.core.simulation.engine;
 
 import org.joda.time.DateTime;
-import org.pillarone.riskanalytics.core.simulation.engine.PeriodScope;
+import org.pillarone.riskanalytics.core.simulation.ILimitedPeriodCounter;
+import org.pillarone.riskanalytics.core.simulation.NotInProjectionHorizon;
+import org.pillarone.riskanalytics.core.simulation.SimulationException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +21,7 @@ public enum GlobalReportingFrequency {
 
     ANNUALLY {
         @Override
-        public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope, org.pillarone.riskanalytics.domain.pc.cf.reinsurance.cover.period.IPeriodStrategy periodStrategy) {
+        public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope) {
 
             ILimitedPeriodCounter variableLengthPeriodCounter = (ILimitedPeriodCounter) periodScope.getPeriodCounter();
             int periods = variableLengthPeriodCounter.periodCount();
@@ -50,7 +52,7 @@ public enum GlobalReportingFrequency {
     },
     DEFAULT {
         @Override
-        public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope, org.pillarone.riskanalytics.domain.pc.cf.reinsurance.cover.period.IPeriodStrategy periodStrategy) {
+        public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope) {
             throw new SimulationException("Not implemented, reporting frequency default choice should never be selected");
         }
 
@@ -61,7 +63,7 @@ public enum GlobalReportingFrequency {
 
     }, QUARTERLY {
         @Override
-        public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope, org.pillarone.riskanalytics.domain.pc.cf.reinsurance.cover.period.IPeriodStrategy periodStrategy) {
+        public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope) {
                         ILimitedPeriodCounter variableLengthPeriodCounter = (ILimitedPeriodCounter) periodScope.getPeriodCounter();
             int periods = variableLengthPeriodCounter.periodCount();
 
@@ -104,7 +106,7 @@ public enum GlobalReportingFrequency {
         }
     }, MONTHLY {
         @Override
-        public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope, org.pillarone.riskanalytics.domain.pc.cf.reinsurance.cover.period.IPeriodStrategy periodStrategy) {
+        public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope) {
 
             ILimitedPeriodCounter variableLengthPeriodCounter = (ILimitedPeriodCounter) periodScope.getPeriodCounter();
             int periods = variableLengthPeriodCounter.periodCount();
@@ -180,11 +182,11 @@ public enum GlobalReportingFrequency {
      * Each reporting period begins one millisecond period before the period starts, and ends one millisecond before the period end.
      * The annual reporting period for 2012 is therefore 2011.12.31 23.59.59.99 -> 2012.12.31 23.59.59.99
      *
+     *
      * @param periodScope
-     * @param periodStrategy
      * @return Annually; last day of period. Quartely, startDate plus 3 months, then the last day... Monthly; first day of period plus months until there are no more months.
      */
-    public abstract Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope, org.pillarone.riskanalytics.domain.pc.cf.reinsurance.cover.period.IPeriodStrategy periodStrategy);
+    public abstract Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope);
 
     public abstract boolean isFirstReportDateInPeriod(Integer period, DateTime reportingDate, PeriodScope periodScope);
 }
