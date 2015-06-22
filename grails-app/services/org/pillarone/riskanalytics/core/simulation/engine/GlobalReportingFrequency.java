@@ -1,6 +1,8 @@
 package org.pillarone.riskanalytics.core.simulation.engine;
 
 import org.joda.time.DateTime;
+import org.joda.time.Months;
+import org.pillarone.riskanalytics.core.packets.Packet;
 import org.pillarone.riskanalytics.core.simulation.ILimitedPeriodCounter;
 import org.pillarone.riskanalytics.core.simulation.NotInProjectionHorizon;
 import org.pillarone.riskanalytics.core.simulation.SimulationException;
@@ -21,23 +23,9 @@ public enum GlobalReportingFrequency {
 
     ANNUALLY {
 
-        @Override
-        public List<DateTime> getReportingDatesForPeriod(DateTime periodStart, DateTime periodEnd) {
-
-            ArrayList<DateTime> outputList = new ArrayList<DateTime>(1); //could pre-calc, but it's usually yearly...
-
-            periodEnd = periodEnd.minusMillis(1); //little trick to ensure this is always in with the minimum number of checks
-
-            for (DateTime reportingDate = periodStart.plusYears(1).minusMillis(1); reportingDate.isBefore(periodEnd);) {
-                outputList.add(reportingDate);
-            }
-
-            outputList.add(periodEnd);
-
-
-            return outputList;
+        public int getDeltaMonths() {
+            return 12;
         }
-
 
         @Override
         public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope) {
@@ -72,6 +60,10 @@ public enum GlobalReportingFrequency {
     },
     DEFAULT {
 
+        public int getDeltaMonths() {
+            return -1;
+        }
+
         @Override
         public List<DateTime> getReportingDatesForPeriod(DateTime periodStart, DateTime periodEnd) {
             throw new SimulationException("Not implemented, reporting frequency default choice should never be selected");
@@ -89,23 +81,9 @@ public enum GlobalReportingFrequency {
 
     }, QUARTERLY {
 
-        @Override
-        public List<DateTime> getReportingDatesForPeriod(DateTime periodStart, DateTime periodEnd) {
-
-            ArrayList<DateTime> outputList = new ArrayList<DateTime>(4); //could pre-calc, but it's usually yearly...
-
-            periodEnd = periodEnd.minusMillis(1); //little trick to ensure this is always in with the minimum number of checks
-
-            for (DateTime reportingDate = periodStart.plusMonths(3).minusMillis(1); reportingDate.isBefore(periodEnd);) {
-                outputList.add(reportingDate);
-            }
-
-            outputList.add(periodEnd);
-
-
-            return outputList;
+        public int getDeltaMonths() {
+            return 3;
         }
-
 
         @Override
         public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope) {
@@ -151,21 +129,8 @@ public enum GlobalReportingFrequency {
         }
     }, MONTHLY {
 
-        @Override
-        public List<DateTime> getReportingDatesForPeriod(DateTime periodStart, DateTime periodEnd) {
-
-            ArrayList<DateTime> outputList = new ArrayList<DateTime>(12); //could pre-calc, but it's usually yearly...
-
-            periodEnd = periodEnd.minusMillis(1); //little trick to ensure this is always in with the minimum number of checks
-
-            for (DateTime reportingDate = periodStart.plusMonths(1).minusMillis(1); reportingDate.isBefore(periodEnd);) {
-                outputList.add(reportingDate);
-            }
-
-            outputList.add(periodEnd);
-
-
-            return outputList;
+        public int getDeltaMonths() {
+            return 1;
         }
 
         @Override
@@ -259,10 +224,77 @@ public enum GlobalReportingFrequency {
     //If java had a "yield return" construct the code would be almost ready - need to check for syntactic sugar over iterators
 
     public List<DateTime> getReportingDatesForCurrentPeriod(PeriodScope periodScope) {
+
         return getReportingDatesForPeriod(periodScope.getCurrentPeriodStartDate(), periodScope.getNextPeriodStartDate());
     }
 
-    public abstract List<DateTime> getReportingDatesForPeriod(DateTime periodStart, DateTime periodEnd);
+
+
+    public abstract int getDeltaMonths();
+
+
+
+    public int getNumberofReportsInPeriod(DateTime periodStart, DateTime periodEnd) {
+
+        final int delta = this.getDeltaMonths();
+
+        int result = Months.monthsBetween(periodStart, periodEnd).getMonths();
+
+        if (periodStart.plusMonths(result).isBefore(periodEnd)) ++result;
+
+        return result;
+
+    }
+
+    public List<DateTime> getReportingDatesForPeriod(DateTime periodStart, DateTime periodEnd) {
+
+        ArrayList<DateTime> outputList = new ArrayList<DateTime>(getNumberofReportsInPeriod(periodStart, periodEnd));
+
+        final int delta = this.getDeltaMonths();
+
+        periodEnd = periodEnd.minusMillis(1); //little trick to ensure this is always in with the minimum number of checks
+
+        for (DateTime reportingDate = periodStart.plusMonths(delta).minusMillis(1); reportingDate.isBefore(periodEnd);) {
+            outputList.add(reportingDate);
+        }
+
+        outputList.add(periodEnd);
+
+        //this should be exactly the same loop that had been implemented more verbosely and with more checks by  Simon
+
+        return outputList;
+
+    }
+
+    int reportingDateIndex(DateTime date, DateTime periodStart) {
+        return Months.monthsBetween(periodStart,date).getMonths() / getDeltaMonths();
+    }
+
+    public List<List<Packet>> PartitionByReportingDate(List<Packet> packetList, DateTime periodStart, DateTime periodEnd) {
+
+        final int numberOfReportingDates = getNumberofReportsInPeriod(periodStart, periodEnd);
+        List<List<Packet>> result = new ArrayList<List<Packet>>(numberOfReportingDates);
+
+        //Pre-initialize the lists... Is all this pre-allocation overkill?
+
+        final int preallocationSize = 2 * packetList.size() / numberOfReportingDates;
+        // the margin should reduce the number of list reallocations...
+
+        for (int i = 0; i<numberOfReportingDates; ++i) {
+            result.add(new ArrayList<Packet>(preallocationSize));
+        }
+
+        //now allocate the packets
+
+        for (Packet packet: packetList) {
+            result.get(reportingDateIndex(packet.getDate(),periodStart)).add(packet);
+        }
+
+        return result;
+
+    }
+
+
 
     public abstract boolean isFirstReportDateInPeriod(Integer period, DateTime reportingDate, PeriodScope periodScope);
 }
