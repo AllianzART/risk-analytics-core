@@ -254,7 +254,9 @@ public enum GlobalReportingFrequency {
 
         periodEnd = periodEnd.minusMillis(1); //little trick to ensure this is always in with the minimum number of checks
 
-        for (DateTime reportingDate = periodStart.plusMonths(delta).minusMillis(1); reportingDate.isBefore(periodEnd);) {
+        for (DateTime reportingDate = periodStart.plusMonths(delta).minusMillis(1);
+             reportingDate.isBefore(periodEnd);
+             reportingDate = reportingDate.plusMonths(delta)   ) {
             outputList.add(reportingDate);
         }
 
