@@ -50,7 +50,7 @@ grails.project.dependency.resolution = {
         }
         compile 'commons-cli:commons-cli:1.2'
 
-        compile 'joda-time:joda-time:2.3'
+        compile 'joda-time:joda-time:2.8.1'
         runtime("javax.mail:mail:1.4.4")
         runtime("net.sf.jtidy:jtidy:r938")
 //        runtime("net.sf.cron4j:cron4j:2.2.5")
