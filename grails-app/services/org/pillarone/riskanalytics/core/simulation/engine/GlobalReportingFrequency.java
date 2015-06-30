@@ -1,5 +1,7 @@
 package org.pillarone.riskanalytics.core.simulation.engine;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.joda.time.Months;
 import org.pillarone.riskanalytics.core.packets.Packet;
@@ -57,7 +59,29 @@ public enum GlobalReportingFrequency {
             return true;
         }
 
-    },QUARTERLY {
+    },
+    DEFAULT {// Tried to remove this but app fails with some startup error..
+
+        public int getDeltaMonths() {
+            return -1;
+        }
+
+        @Override
+        public List<DateTime> getReportingDatesForPeriod(DateTime periodStart, DateTime periodEnd) {
+            throw new SimulationException("Not implemented, reporting frequency default choice should never be selected");
+        }
+
+        @Override
+        public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope) {
+            throw new SimulationException("Not implemented, reporting frequency default choice should never be selected");
+        }
+
+        @Override
+        public boolean isFirstReportDateInPeriod(Integer period, DateTime reportingDate, PeriodScope periodScope) {
+            throw new SimulationException("Not implemented, reporting frequency default choice should never be selected");
+        }
+
+    }, QUARTERLY {
 
         public int getDeltaMonths() {
             return 3;
@@ -165,6 +189,9 @@ public enum GlobalReportingFrequency {
         }
     };
 
+    private static Log LOG = LogFactory.getLog(GlobalReportingFrequency.class);
+
+
     /**
      * Checks if the reporting date is the last reporting date in the period. In general the business logic may need to know this
      * in order to check whether or not to persist things in the period store
@@ -270,14 +297,23 @@ public enum GlobalReportingFrequency {
             try {
                 result.get(reportingDateIndex(packet.getDate(),periodStart)).add(packet);
             } catch (IndexOutOfBoundsException e) {
-                //Just bury it for the time being - would like to log and go on but it's slightly involved this time of the night
+                // Packet not within period !
+
+                // TEMPORARY
                 //
-                //Idea here is run
-                if (reportingDateIndex(packet.getDate(),periodStart) > 0) { //if out of right bound add to last
-                    result.get(result.size() - 1).add(packet); //add to last
-                } else { //else add to first
+                // If follows period, add it to last month
+                // If precedes period, add it to first month
+                //
+
+                String msg = null;
+                if (reportingDateIndex(packet.getDate(),periodStart) > 0) {
+                    result.get(result.size() - 1).add(packet);
+                    msg = String.format("Packet date (%s) follows current period (%s)", packet.getDate(), periodStart );
+                } else {
                     result.get(0).add(packet);
+                    msg = String.format("Packet date (%s) precedes current period (%s)", packet.getDate(), periodStart );
                 }
+                LOG.warn(msg);
             }
         }
 
