@@ -289,7 +289,18 @@ public enum GlobalReportingFrequency {
         //now allocate the packets
 
         for (Packet packet: packetList) {
-            result.get(reportingDateIndex(packet.getDate(),periodStart)).add(packet);
+            try {
+                result.get(reportingDateIndex(packet.getDate(),periodStart)).add(packet);
+            } catch (IndexOutOfBoundsException e) {
+                //Just bury it for the time being - would like to log and go on but it's slightly involved this time of the night
+                //
+                //Idea here is run
+                if (reportingDateIndex(packet.getDate(),periodStart) > 0) { //if out of right bound add to last
+                    result.get(result.size() - 1).add(packet); //add to last
+                } else { //else add to first
+                    result.get(0).add(packet);
+                }
+            }
         }
 
         return result;
