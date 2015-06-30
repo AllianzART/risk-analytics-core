@@ -57,29 +57,7 @@ public enum GlobalReportingFrequency {
             return true;
         }
 
-    },
-    DEFAULT {
-
-        public int getDeltaMonths() {
-            return -1;
-        }
-
-        @Override
-        public List<DateTime> getReportingDatesForPeriod(DateTime periodStart, DateTime periodEnd) {
-            throw new SimulationException("Not implemented, reporting frequency default choice should never be selected");
-        }
-
-        @Override
-        public Map<Integer, List<DateTime>> getReportingDatesByPeriod(PeriodScope periodScope) {
-            throw new SimulationException("Not implemented, reporting frequency default choice should never be selected");
-        }
-
-        @Override
-        public boolean isFirstReportDateInPeriod(Integer period, DateTime reportingDate, PeriodScope periodScope) {
-            throw new SimulationException("Not implemented, reporting frequency default choice should never be selected");
-        }
-
-    }, QUARTERLY {
+    },QUARTERLY {
 
         public int getDeltaMonths() {
             return 3;
