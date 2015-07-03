@@ -11,6 +11,41 @@ import org.pillarone.riskanalytics.core.user.Person
 
 class AllFieldsFilterTests extends GroovyTestCase {
 
+    // Neat approach to more succinct test code from http://stackoverflow.com/a/18002336
+    // Just call with map of specific fields you need to override from defaults
+    //
+    def createParameterizationCacheItem(Map map = [:]){
+        def m = [
+                id:1,
+                versionNumber:null,
+                name:'PARAM_NAME',
+                modelClass:null,
+                creationDate:null,
+                modificationDate:null,
+                creator:null,
+                lastUpdater:null,
+                tags:null,
+                valid:false,
+                status:null,
+                dealId:1
+        ]
+        m << map // supplied values overwrite defaults
+        new ParameterizationCacheItem(
+                m.id,
+                m.versionNumber,
+                m.name,
+                m.modelClass,
+                m.creationDate,
+                m.modificationDate,
+                m.creator,
+                m.lastUpdater,
+                m.tags,
+                m.valid,
+                m.status,
+                m.dealId
+        )
+    }
+
     void testSearchByOwner() {
         ResourceCacheItem resource = new ResourceCacheItem(1l, 'testName', null, null, null, null, new Person(username: 'user'), null, null, false, null)
         assert new AllFieldsFilter(query: 'use').accept(resource)
@@ -81,13 +116,13 @@ class AllFieldsFilterTests extends GroovyTestCase {
 
         // Filter on seed
         //
-        parameterization = new ParameterizationCacheItem(1l, null, 'PARAM_NAME', null, null, null, null, null, null, false, null, 12345l)
+        parameterization = createParameterizationCacheItem( [id: 1l, name: 'PARAM_NAME', dealId: 12345l] )
         simulation = new SimulationCacheItem(1l, 'some other name', parameterization, resultConfiguration, ImmutableList.copyOf([new Tag(name: 'paramTestName')]), null, null, null, null, null, null, null, 0, null,54321)
         assert !new AllFieldsFilter(query: 't:12345').accept(simulation)        //should not match pn's tags
         assert  new AllFieldsFilter(query: 'd:12345').accept(simulation)        //should match pn's deal id
         assert  new AllFieldsFilter(query: '12345').accept(simulation)          //should match pn's deal id
-        assert !new AllFieldsFilter(query: 'd:2345').accept(simulation)         //but not on partial deal id
-        assert !new AllFieldsFilter(query: '2345').accept(simulation)           //but not on partial deal id
+        assert  new AllFieldsFilter(query: 'd:2345').accept(simulation)         //but not on partial deal id
+        assert  new AllFieldsFilter(query: '2345').accept(simulation)           //but not on partial deal id
         assert  new AllFieldsFilter(query: 'seed=54321').accept(simulation)     //should match exact randomSeed value
         assert !new AllFieldsFilter(query: 'seed=4321').accept(simulation)      //but not match wrong value
         assert  new AllFieldsFilter(query: '!seed=4321').accept(simulation)     //should reject wrong value
