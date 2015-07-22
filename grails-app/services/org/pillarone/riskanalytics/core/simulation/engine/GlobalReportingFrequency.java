@@ -39,6 +39,9 @@ public enum GlobalReportingFrequency {
 
             for (int period = 1; period <= periods; period++) {
             // this thing just ASSUMES periods are annual!!!!! And it has checks for non-annual length periods elsewhere...
+            //update: confirmed with Jon that this is buggy. We do have models in which not all periods are annual.
+            //my guess as to why this hasn't apparently hit us yet is that we mostly just use MONTHLY.
+            //Todo: Fix it. There are still codepaths pointing here. Easy way is to use the new code (i.e. shared stuff in the enum) which already takes care of this.
                 ArrayList<DateTime> reportingDates = new ArrayList<DateTime>();
                 DateTime reportingDate;
                 try {
@@ -239,9 +242,9 @@ public enum GlobalReportingFrequency {
 
     public int getNumberofReportsInPeriod(DateTime periodStart, DateTime periodEnd) {
 
-        final int delta = this.getDeltaMonths();
+        final int delta = this.getDeltaMonths(); //this is the reporting period duration in months
 
-        int result = Months.monthsBetween(periodStart, periodEnd).getMonths();
+        int result = Months.monthsBetween(periodStart, periodEnd).getMonths()/delta;
 
         if (periodStart.plusMonths(result).isBefore(periodEnd)) ++result;
 
@@ -253,7 +256,7 @@ public enum GlobalReportingFrequency {
 
         ArrayList<DateTime> outputList = new ArrayList<DateTime>(getNumberofReportsInPeriod(periodStart, periodEnd));
 
-        final int delta = this.getDeltaMonths();
+        final int delta = this.getDeltaMonths(); //this is the reporting period duration in months
 
         periodEnd = periodEnd.minusMillis(1); //little trick to ensure this is always in with the minimum number of checks
         periodStart = periodStart.minusMillis(1);
@@ -268,7 +271,6 @@ public enum GlobalReportingFrequency {
         outputList.add(periodEnd);
 
         //this should be exactly the same loop that had been implemented more verbosely and with more checks by  Simon
-
         return outputList;
 
     }
@@ -320,8 +322,6 @@ public enum GlobalReportingFrequency {
         return result;
 
     }
-
-
 
     public abstract boolean isFirstReportDateInPeriod(Integer period, DateTime reportingDate, PeriodScope periodScope);
 }
