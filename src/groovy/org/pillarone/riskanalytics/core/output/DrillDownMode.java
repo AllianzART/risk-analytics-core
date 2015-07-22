@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public enum DrillDownMode {
-    BY_SOURCE, BY_PERIOD, BY_TYPE, BY_UPDATEDATE;
+    BY_SOURCE, BY_PERIOD, BY_TYPE, BY_UPDATEDATE, BY_CALENDARYEAR;
 
     public static List<DrillDownMode> getDrillDownModesBySource() {
         List<DrillDownMode> drillDownModes = new ArrayList<DrillDownMode>();
@@ -27,6 +27,12 @@ public enum DrillDownMode {
     public static List<DrillDownMode> getDrillDownModesByUpdateDate() {
         List<DrillDownMode> drillDownModes = new ArrayList<DrillDownMode>();
         ((ArrayList<DrillDownMode>) drillDownModes).add(DrillDownMode.BY_UPDATEDATE);
+        return drillDownModes;
+    }
+
+    public static List<DrillDownMode> getDrillDownModesByCalendarYear() {
+        List<DrillDownMode> drillDownModes = new ArrayList<DrillDownMode>();
+        ((ArrayList<DrillDownMode>) drillDownModes).add(DrillDownMode.BY_CALENDARYEAR);
         return drillDownModes;
     }
 
