@@ -1,4 +1,7 @@
 package org.pillarone.riskanalytics.core.simulation.engine
+
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
 import org.pillarone.riskanalytics.core.model.Model
 import org.pillarone.riskanalytics.core.model.ModelHelper
 import org.pillarone.riskanalytics.core.output.*
@@ -20,6 +23,7 @@ import org.springframework.beans.factory.config.BeanDefinition
  * Use the SimulationConfiguration to configure a SimulationRunner instance.
  */
 public class SimulationConfiguration implements Serializable, Cloneable {
+    private static final Log LOG = LogFactory.getLog(SimulationConfiguration)
 
     Simulation simulation
     MappingCache mappingCache
@@ -115,6 +119,8 @@ public class SimulationConfiguration implements Serializable, Cloneable {
             paths.addAll(inceptionPeriodPaths)
             Set<String> pastVsFuturePaths = getSplitByPastVsFutureDrillDownPaths(drillDownCollectors, model)
             paths.addAll(pastVsFuturePaths)
+            Set<String> calendarYearPaths = getSplitByCalendarYear(drillDownCollectors, model)
+            paths.addAll(calendarYearPaths)
             Set<String> typeDrillDownPaths = getPotentialTypeDrillDowns(drillDownCollectors)
             paths.addAll(typeDrillDownPaths)
 
@@ -173,6 +179,31 @@ public class SimulationConfiguration implements Serializable, Cloneable {
         //periodLabels.addAll PeriodLabelsUtil.getPeriodLabels(simulation, model)//if we want to include the update date in the paths...
         return ModelHelper.pathsExtendedWithPeriod(splitByPastVsFuturePaths, [DrillDownMode.fromPastName, DrillDownMode.fromFutureName]) //AR-111
     }
+
+    /* AR-111 - Want something like ['2014','2015','2016'] */
+    private Set<String> getSplitByCalendarYear(List<PacketCollector> collectors, Model model) {
+        List<String> basePaths = getDrillDownPaths(collectors, DrillDownMode.BY_CALENDARYEAR)
+        //Set<String> periodLabels = model.periodLabelsBeforeProjectionStart()   //not needed. Might need something similar
+        //periodLabels.addAll PeriodLabelsUtil.getPeriodLabels(simulation, model)//if we want to include the update date in the paths...
+
+        // Get hold of period labels from p14n and chop off the non year bits
+
+        List<String> periodLabels = simulation?.parameterization.getPeriodLabels()
+        List<String> calendarYears = new ArrayList<String>();
+        for( String label : periodLabels  ){
+            String year = label.substring(0,4)  // [begin,end)
+            LOG.info("Adding Year : [$year]")
+            assert year.length() == 4
+            calendarYears.add(year)  // [begin,end)
+        }
+        // TODO: Add one more to be sure
+
+        return ModelHelper.pathsExtendedWithPeriod(
+                basePaths,
+                new ArrayList<String>(calendarYears)
+        )
+    }
+
 
     /*AR-111 end*/
     private Set<String> hardcodedTypeSplitEnumRegistry() {
