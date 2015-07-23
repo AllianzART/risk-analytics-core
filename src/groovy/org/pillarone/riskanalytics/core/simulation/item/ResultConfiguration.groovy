@@ -2,6 +2,7 @@ package org.pillarone.riskanalytics.core.simulation.item
 
 import groovy.transform.CompileStatic
 import org.apache.commons.lang.builder.HashCodeBuilder
+import org.apache.log4j.Logger
 import org.pillarone.riskanalytics.core.ModelDAO
 import org.pillarone.riskanalytics.core.SimulationProfileDAO
 import org.pillarone.riskanalytics.core.model.Model
@@ -19,6 +20,8 @@ import org.pillarone.riskanalytics.core.util.IConfigObjectWriter
 import static com.google.common.base.Preconditions.checkNotNull
 
 class ResultConfiguration extends ModellingItem {
+
+    private static final Logger LOG = Logger.getLogger(ResultConfiguration)
 
     String comment
     VersionNumber modelVersionNumber
@@ -91,7 +94,11 @@ class ResultConfiguration extends ModellingItem {
 
         //These collectors are used by the UI only, therefore wildcard collectors must not be resolved here
         collectors = dao.collectorInformation.collect { CollectorInformation ci ->
-            PacketCollector collector = new PacketCollector(CollectingModeFactory.getStrategy(ci.collectingStrategyIdentifier))
+            LOG.info("About to look up strategy ${ci.collectingStrategyIdentifier}")
+            ICollectingModeStrategy arg = CollectingModeFactory.getStrategy(ci.collectingStrategyIdentifier)
+            LOG.info("Found ${arg}")
+
+            PacketCollector collector = new PacketCollector(arg)
             collector.path = ci.path.pathName
             return collector
         }
