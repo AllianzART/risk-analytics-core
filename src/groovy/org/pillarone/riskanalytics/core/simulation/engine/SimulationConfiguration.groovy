@@ -198,7 +198,7 @@ public class SimulationConfiguration implements Serializable, Cloneable {
         }
         // TODO: Add one more to be sure
 
-        return ModelHelper.pathsExtendedWithPeriod(
+        return ModelHelper.pathsExtendedWithCYofOccurrence(
                 basePaths,
                 new ArrayList<String>(calendarYears)
         )
