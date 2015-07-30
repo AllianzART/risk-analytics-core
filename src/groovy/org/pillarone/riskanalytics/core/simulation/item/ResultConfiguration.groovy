@@ -94,9 +94,9 @@ class ResultConfiguration extends ModellingItem {
 
         //These collectors are used by the UI only, therefore wildcard collectors must not be resolved here
         collectors = dao.collectorInformation.collect { CollectorInformation ci ->
-            LOG.info("About to look up strategy ${ci.collectingStrategyIdentifier}")
+            LOG.debug("About to look up strategy ${ci.collectingStrategyIdentifier}")
             ICollectingModeStrategy arg = CollectingModeFactory.getStrategy(ci.collectingStrategyIdentifier)
-            LOG.info("Found ${arg}")
+            LOG.debug("Found ${arg}")
 
             PacketCollector collector = new PacketCollector(arg)
             collector.path = ci.path.pathName
