@@ -197,7 +197,9 @@ public class SimulationConfiguration implements Serializable, Cloneable {
             calendarYears.add(year)  // [begin,end)
         }
 
-        calendarYears.add( (calendarYears.last().toInteger() + 1).toString() )
+        if (!calendarYears.empty) {
+            calendarYears.add( (calendarYears.last().toInteger() + 1).toString() )
+        }
         //todo this could still leave gaps when the periods are not annual
 
         return ModelHelper.pathsExtendedWithCYofOccurrence(
