@@ -196,11 +196,13 @@ public class SimulationConfiguration implements Serializable, Cloneable {
             assert year.length() == 4
             calendarYears.add(year)  // [begin,end)
         }
-        // TODO: Add one more to be sure
+
+        calendarYears.add( (calendarYears.last().toInteger() + 1).toString() )
+        //todo this could still leave gaps when the periods are not annual
 
         return ModelHelper.pathsExtendedWithCYofOccurrence(
                 basePaths,
-                new ArrayList<String>(calendarYears)
+                new ArrayList<String>(calendarYears) //why copying it?
         )
     }
 
