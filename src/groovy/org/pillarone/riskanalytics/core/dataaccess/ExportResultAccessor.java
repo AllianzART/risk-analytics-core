@@ -47,24 +47,32 @@ public class ExportResultAccessor {
         long collectorId = ResultAccessor.getCollectorId(collector);
         long runId =  ResultAccessor.getRunIDFromSimulation(run);
 
-        for (int i = 0; i < run.getPeriodCount(); i++) {
-            File f = new File(GridHelper.getResultPathLocation(runId , pathId, fieldId, collectorId, i));
-            File[] fileList = {f};
+        for (int periodIdx = 0; periodIdx < run.getPeriodCount(); periodIdx++) {
+
+            File f = new File(GridHelper.getResultPathLocation(runId, pathId, fieldId, collectorId, periodIdx));
+
             /*Initial wildcard-based solution*/
             if (!f.exists()) { // if there's no "SINGLE" result...
+                String wildcard = pathId + "_" + periodIdx + "_" + fieldId + "_*";
+                LOG.info("SINGLE result not found, seeking alternative via '"+runId+"/"+wildcard+"'");
                 File dir = new File(GridHelper.getResultLocation(runId));
-                String wildcard = pathId + "_" + i + "_" + fieldId + "_*";
-                FileFilter filter = new WildcardFileFilter(wildcard);
-                fileList = dir.listFiles(filter);
+                File[] fileList = dir.listFiles( (FileFilter) new WildcardFileFilter(wildcard) );
                 if (fileList != null) {
                     if (fileList.length > 0){
                         f = fileList[0];
+                        LOG.info("Found: " + f.getAbsolutePath());
+                        if (fileList.length > 1){
+                            String w = "(AR-111 non-SINGLE) '"+runId+"/"+wildcard+"' yields multiple files for "+path+" at period "+ periodIdx;
+                            LOG.warn(w); // Not sure if RiskAnalyticsResultAccessException will get out or get swallowed
+                            throw new RiskAnalyticsResultAccessException(w);
+                        }
+                    } else { // empty list
+                        LOG.info("Non-SINGLE result not found matching '"+runId+"/"+wildcard+"'");
                     }
-                    if (fileList.length > 1){
-                        String w = "(AR-111 non-SINGLE) '"+runId+"/"+wildcard+"' yields multiple files for "+path+" at period "+ i;
-                        LOG.warn(w); // Not sure if RiskAnalyticsResultAccessException will get out or get swallowed
-                        throw new RiskAnalyticsResultAccessException(w);
-                    }
+                } else { // null list
+                    String e = "Either an I/O error occurred or following not valid dir/filter: '"+runId+"/"+wildcard+"'";
+                    LOG.error(e);
+                    throw new RiskAnalyticsResultAccessException(e);
                 }
             }
             /*AR-111 temporary block END*/
@@ -88,7 +96,7 @@ public class ExportResultAccessor {
                         resultWithNullFieldsCollectorsSimRunAndPath.setDate(new DateTime(val.getDateTime()));
                         resultWithNullFieldsCollectorsSimRunAndPath.setValue(val.getaDouble());
                         resultWithNullFieldsCollectorsSimRunAndPath.setIteration(iteration);
-                        resultWithNullFieldsCollectorsSimRunAndPath.setPeriod(i);
+                        resultWithNullFieldsCollectorsSimRunAndPath.setPeriod(periodIdx);
                         result.add(resultWithNullFieldsCollectorsSimRunAndPath);
                     }
                 }
