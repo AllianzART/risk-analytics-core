@@ -25,19 +25,19 @@ public class ExportResultAccessor {
 
 
     /**
-     * This method is a fairly close clone of @link(org.pillarone.riskanalytics.core.dataaccess.ResultAccessor#getSingleValueResults(java.lang.String, java.lang.String, java.lang.String, org.pillarone.riskanalytics.core.output.SimulationRun))
-     *
-     * The differences are that this is written in java, it should thus be faster. It should handle errors more gracefully, and it
-     * is far more strongly typed.
+     * This method is a fairly close clone of @link(..core.dataaccess.ResultAccessor#getSingleValueResults(String, String, String, SimulationRun))
+     *                                                                ^^^^^^^^^^^^^^
+     * The differences are that this is written in java, it should thus be faster.
+     * It should handle errors more gracefully, and is more strongly typed.
      *
      * @param collector used to lookup the field in question
      * @param path path in question
      * @param field field in question
      * @param run the simulation run
-     * @return returns a list of @link{org.pillarone.riskanalytics.core.output.SingleValueResultPOJO}. Note that these objects have null
-     * fields set for their collector, simulationRun, path and fields member variables. The reason is that these should certainly be known by the calling function.
-     * Furthermore, they are grails domain objects, and grails will do funky stuff on their creation. We therefore return null values.
-     * It is important the calling function handles this appropriately.
+     * @return list of @link{org.pillarone.riskanalytics.core.output.SingleValueResultPOJO}.
+     * NOTE caller must be aware we return null for collector, simulationRun, path and fields; as :
+     *  1) these should certainly be known by the calling function.
+     *  2) as they are grails domain objects grails may do funky stuff with them. We avoid this with null values.
      *
      */
     public static List<SingleValueResultPOJO> getSingleValueResultsForExport(String collector, String path, String field, SimulationRun run ) {
