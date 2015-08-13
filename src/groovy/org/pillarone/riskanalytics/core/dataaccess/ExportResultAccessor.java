@@ -1,6 +1,8 @@
 package org.pillarone.riskanalytics.core.dataaccess;
 
 import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.pillarone.riskanalytics.core.RiskAnalyticsResultAccessException;
 import org.pillarone.riskanalytics.core.output.CollectorInformation;
@@ -17,13 +19,11 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 /**
  * author simon.parten @ art-allianz . com
  */
 public class ExportResultAccessor {
-
-
+    private static Log LOG = LogFactory.getLog(ExportResultAccessor.class);
     /**
      * This method is a fairly close clone of @link(..core.dataaccess.ResultAccessor#getSingleValueResults(String, String, String, SimulationRun))
      *                                                                ^^^^^^^^^^^^^^
@@ -50,17 +50,24 @@ public class ExportResultAccessor {
         for (int i = 0; i < run.getPeriodCount(); i++) {
             File f = new File(GridHelper.getResultPathLocation(runId , pathId, fieldId, collectorId, i));
             File[] fileList = {f};
-/*Initial wildcard-based solution*/
+            /*Initial wildcard-based solution*/
             if (!f.exists()) { // if there's no "SINGLE" result...
                 File dir = new File(GridHelper.getResultLocation(runId));
-                FileFilter filter = new WildcardFileFilter(pathId + "_" + i + "_" + fieldId + "_*");
+                String wildcard = pathId + "_" + i + "_" + fieldId + "_*";
+                FileFilter filter = new WildcardFileFilter(wildcard);
                 fileList = dir.listFiles(filter);
                 if (fileList != null) {
-                    if (fileList.length > 0) f = fileList[0];
-                    if (fileList.length > 1) throw new RiskAnalyticsResultAccessException("(AR-111 non-SINGLE) More than one file for "+path+" at period "+ i);
+                    if (fileList.length > 0){
+                        f = fileList[0];
+                    }
+                    if (fileList.length > 1){
+                        String w = "(AR-111 non-SINGLE) '"+runId+"/"+wildcard+"' yields multiple files for "+path+" at period "+ i;
+                        LOG.warn(w); // Not sure if RiskAnalyticsResultAccessException will get out or get swallowed
+                        throw new RiskAnalyticsResultAccessException(w);
+                    }
                 }
             }
-/*AR-111 temporary block END*/
+            /*AR-111 temporary block END*/
 
             IterationFileAccessor ifa = null;
             try {
