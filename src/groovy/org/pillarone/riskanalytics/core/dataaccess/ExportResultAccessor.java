@@ -46,6 +46,14 @@ public class ExportResultAccessor {
         long fieldId = ResultAccessor.getFieldId(field);
         long collectorId = ResultAccessor.getCollectorId(collector);
         long runId =  ResultAccessor.getRunIDFromSimulation(run);
+        String args = String.format(
+                "sim:%s(id:%d),path:%s(id:%d),field:%s(id:%d),collector:%s(id:%d)",
+                run.getName(),runId,
+                path,pathId,
+                field,fieldId,
+                collector,collectorId
+        );
+        LOG.info("Lookup "+run.getPeriodCount()+" result periods for: " + args);
 
         for (int periodIdx = 0; periodIdx < run.getPeriodCount(); periodIdx++) {
 
@@ -54,7 +62,8 @@ public class ExportResultAccessor {
             /*Initial wildcard-based solution*/
             if (!f.exists()) { // if there's no "SINGLE" result...
                 String wildcard = pathId + "_" + periodIdx + "_" + fieldId + "_*";
-                LOG.info("SINGLE result not found, seeking alternative via '"+runId+"/"+wildcard+"'");
+                String wildDesc = String.format("path:%d='%s',period:%d,field:%d='%s'", pathId,path,periodIdx,fieldId,field);
+                LOG.info("No SINGLE result, check '"+runId+"/"+wildcard+"' ("+wildDesc+")");
                 File dir = new File(GridHelper.getResultLocation(runId));
                 File[] fileList = dir.listFiles( (FileFilter) new WildcardFileFilter(wildcard) );
                 if (fileList != null) {
@@ -76,6 +85,9 @@ public class ExportResultAccessor {
                 }
             }
             /*AR-111 temporary block END*/
+            else{
+                LOG.info("Found "+collector+" result file: " + f.getName());
+            }
 
             IterationFileAccessor ifa = null;
             try {
@@ -90,6 +102,7 @@ public class ExportResultAccessor {
                 while (ifa.fetchNext()) {
                     int iteration = ifa.getIteration();
                     List<DateTimeValuePair> values = ifa.getSingleValues();
+                    LOG.info("IFA contains "+values.size()+" single values");
 
                     for (DateTimeValuePair val : values) {
                         SingleValueResultPOJO resultWithNullFieldsCollectorsSimRunAndPath = new SingleValueResultPOJO();
