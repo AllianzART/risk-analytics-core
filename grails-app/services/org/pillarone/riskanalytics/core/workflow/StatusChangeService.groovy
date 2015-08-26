@@ -36,7 +36,7 @@ class StatusChangeService {
             },
             (DATA_ENTRY): { Parameterization parameterization ->
                 if (parameterization.status == IN_REVIEW) {
-                    parameterization.status = Status.REJECTED
+                    parameterization.status = REJECTED
                     parameterization.save()
                 } else if (parameterization.status == NONE) {
                     HibernateCriteriaBuilder criteria = ParameterizationDAO.createCriteria()
@@ -96,6 +96,11 @@ class StatusChangeService {
 
     }
 
+    // TODO http://jira/i#browse/AR-190
+    // Called from ra-app/AbstractWorkflowAction to create a new workflow version.
+    // In principle we could have a sibling method that also accepted a sandbox p14n to clone instead.
+    // To allow users to make a new workflow version out of an existing sandbox model they already have setup.
+    //
     @CompileStatic
     Parameterization changeStatus(Parameterization parameterization, Status to) {
         Parameterization newParameterization = null
