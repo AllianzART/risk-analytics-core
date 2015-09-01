@@ -259,11 +259,11 @@ public enum GlobalReportingFrequency {
         final int delta = this.getDeltaMonths(); //this is the reporting period duration in months
 
         periodEnd = periodEnd.minusMillis(1); //little trick to ensure this is always in with the minimum number of checks
-        periodStart = periodStart.minusMillis(1);
+        //periodStart = periodStart.minusMillis(1); //factoring out the minusmillis faster but bites - not invariant!
         int i = 1; //see comment to the step increment below. Maybe there's a nicer idiom for this...
-        for (DateTime reportingDate = periodStart.plusMonths(delta);
+        for (DateTime reportingDate = periodStart.plusMonths(delta).minusMillis(1);
              reportingDate.isBefore(periodEnd);
-             reportingDate = periodStart.plusMonths(++i*delta)) { //dateTime.plusMonths(2) is not always the same as dateTime.plusMonths(1).plusMonths(1). Hence the awkward use of i.
+             reportingDate = periodStart.plusMonths(++i*delta).minusMillis(1)) { //dateTime.plusMonths(2) is not always the same as dateTime.plusMonths(1).plusMonths(1). Hence the awkward use of i.
             outputList.add(reportingDate);
         }
 
