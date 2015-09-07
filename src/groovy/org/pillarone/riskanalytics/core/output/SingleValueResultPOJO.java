@@ -19,7 +19,10 @@ public class SingleValueResultPOJO {
     private int valueIndex;
     private double value;
     private DateTime date;
-
+    /*todo: AR-111
+    private DateTime originatingClaimDate;
+    private boolean natCat;
+    */
     @Override
     public String toString() {
         StringBuffer buffer = new StringBuffer();

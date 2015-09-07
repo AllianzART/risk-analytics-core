@@ -4,6 +4,8 @@ import org.pillarone.riskanalytics.core.parameterization.IParameterObject
 
 /**
  * Note: all implementations must provide a static method valueOf(String)
+ *
+ * FR - Doh.. Why then is valueOf() not specified in the interface?!
  */
 interface IParameterObjectClassifier extends Serializable {
 
