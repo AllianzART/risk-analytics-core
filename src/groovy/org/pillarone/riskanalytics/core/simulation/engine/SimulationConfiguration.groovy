@@ -2,16 +2,21 @@ package org.pillarone.riskanalytics.core.simulation.engine
 
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
+import org.joda.time.DateTime
 import org.pillarone.riskanalytics.core.model.Model
 import org.pillarone.riskanalytics.core.model.ModelHelper
 import org.pillarone.riskanalytics.core.output.*
+import org.pillarone.riskanalytics.core.parameterization.ConstrainedMultiDimensionalParameter
 import org.pillarone.riskanalytics.core.parameterization.ParameterApplicator
+import org.pillarone.riskanalytics.core.simulation.SimulationException
 import org.pillarone.riskanalytics.core.simulation.engine.grid.SimulationBlock
 import org.pillarone.riskanalytics.core.simulation.item.ModelStructure
 import org.pillarone.riskanalytics.core.simulation.item.Parameterization
 import org.pillarone.riskanalytics.core.simulation.item.ResultConfiguration
 import org.pillarone.riskanalytics.core.simulation.item.Simulation
+import org.pillarone.riskanalytics.core.simulation.item.parameter.MultiDimensionalParameterHolder
 import org.pillarone.riskanalytics.core.simulation.item.parameter.ParameterHolder
+import org.pillarone.riskanalytics.core.simulation.item.parameter.ParameterObjectParameterHolder
 import org.pillarone.riskanalytics.core.util.PeriodLabelsUtil
 import org.pillarone.riskanalytics.core.wiring.IPacketListener
 import org.springframework.beans.factory.config.BeanDefinition
@@ -186,28 +191,138 @@ public class SimulationConfiguration implements Serializable, Cloneable {
         //Set<String> periodLabels = model.periodLabelsBeforeProjectionStart()   //not needed. Might need something similar
         //periodLabels.addAll PeriodLabelsUtil.getPeriodLabels(simulation, model)//if we want to include the update date in the paths...
 
-        // Get hold of period labels from p14n and chop off the non year bits
+        // For simple annual case can stick with "Get hold of period labels from p14n and chop off the non year bits"
+        // Custom periods: obtain periods directly via: sim -> p14n -> coverage parameter -> ...
+        //
+        Parameterization parameterization = simulation.parameterization
+        List<ParameterHolder> coveragePeriodList = parameterization.parameterHolders.findAll {
+            (!it.removed) &&
+            (it.path=="globalParameters:parmCoveragePeriod")
+        };
 
-        List<String> periodLabels = simulation?.parameterization.getPeriodLabels()
-        List<String> calendarYears = new ArrayList<String>();
-        for( String label : periodLabels  ){
-            String year = label.substring(0,4)  // [begin,end)
-            LOG.info("Adding Year : [$year]")
-            assert year.length() == 4
-            calendarYears.add(year)  // [begin,end)
+        // There must be exactly one coverage period ?
+        //
+        if( coveragePeriodList.size() != 1 ){
+            logAndThrowSimulationException(
+                "P14n has: ${coveragePeriodList.size()} (not-deleted) coverage period parameters! (with path:'globalParameters:parmCoveragePeriod')"
+            )
         }
-
-        if (!calendarYears.empty) {
-            calendarYears.add( (calendarYears.last().toInteger() + 1).toString() )
+        // And it must be a ParameterObjectParameterHolder..
+        //
+        if( ! (coveragePeriodList.first() instanceof ParameterObjectParameterHolder) ){
+            logAndThrowSimulationException(
+                "P14n's coverage period type ${coveragePeriodList.first().getClass().getName()} (path:'globalParameters:parmCoveragePeriod') wanted: ParameterObjectParameterHolder !"
+            )
         }
-        //todo this could still leave gaps when the periods are not annual
+        // OK ready to party perhaps.. debugger shows 'classifier' as CUSTOM for Chrysler vR11 (problem p14n)
+        // TODO Maybe worth testing classifierParameters field instead.. as that holds the full periods list in Chrysler case..
+        //
+        ParameterObjectParameterHolder coverageParameterHolder = (ParameterObjectParameterHolder) coveragePeriodList.first();
+        if( coverageParameterHolder.classifier.typeName == "CUSTOM"  ){
+            // For Chryser, the CUSTOM classifier is an instance of com.allianz.art.riskanalytics.pc.global.PeriodStrategyType
+            // But it doesnt contain ALL the period entries! Those are found instead (why?!) in the field classifierParameters..
+            // Obtain the list of periods from the 'periods' entry of classifierParameters.
+            //
+            Map<String, ParameterHolder> classifierParameters = coverageParameterHolder.classifierParameters;
+            if( classifierParameters.get("periods") == null ){
+                logAndThrowSimulationException(
+                    "No 'periods' entry in classifierParameters map in P14n coverage period (path:'globalParameters:parmCoveragePeriod')!"
+                )
+            }
 
-        return ModelHelper.pathsExtendedWithCYofOccurrence(
-                basePaths,
-                new ArrayList<String>(calendarYears) //why copying it?
-        )
+            ConstrainedMultiDimensionalParameter periodStuff = // Might puke for some models if a different class is somehow used in it!
+                (classifierParameters.get("periods") /*MultiDimensionalParameterHolder*/ ).value
+
+            // Chrysler case has :
+            // - titles field = array with entries 'Start Date', 'End Date'; and
+            // - values field = array with a list for each of the titles
+            //
+            // Add some asserts to catch any variations when we run a batch, so we can understand this steamy pile better...
+            //
+            List<String> titles = periodStuff.titles
+            assert titles.size() == 2
+            assert titles.get(0) == "Start Date"
+            assert titles.get(1) == "End Date"
+
+            // Assert that there are two lists in the date stuff, and each has same number of entries
+            // i.e.: there is an end date for each start date
+            //
+            List<List<org.joda.time.DateTime>> dateStuff = periodStuff.values
+            assert dateStuff.size()==2
+            List<org.joda.time.DateTime> startDates = dateStuff.get(0)
+            List<org.joda.time.DateTime> endDates   = dateStuff.get(1)
+            assert startDates.size() == endDates.size()
+
+            // Now we can walk the two lists in dateStuff and accumulate the year numbers
+            // Use a Set to be clever like Paolo suggested
+            //
+            Set<String> distinctYears = new HashSet<String>()
+            for( int i = 0; i<startDates.size(); ++i ){
+
+                org.joda.time.DateTime start = startDates.get(i)
+                org.joda.time.DateTime end   = endDates.get(i)
+
+                LOG.info("Collecting years from custom period: '$start' to '$end' ")
+
+                assert end.compareTo(start) > 0
+
+                // Find each year within this range ??
+                // Can't think of any cleverer way than just walking the months...
+                // TODO but must check if that's correct...
+                //
+                // Approach I think Paolo uses - adding N months to start instead of chaining N increments of 1 month:
+                //
+                DateTime day = new DateTime(start)
+                for( int d = 0; day.compareTo(end) < 0; ++d){ // ugly
+                    if(d>1200){
+                        logAndThrowSimulationException("Something's wrong or we exceeded 100-year contract in model '${parameterization.nameAndVersion}'")
+                    }
+                    day = new DateTime(start).plusMonths(d)   // Welcome to 'free' memory world of the jvm..
+                    String year = "" + day.getYear()
+                    if(!distinctYears.contains(year)){
+                        LOG.info("Adding year: $year")
+                        distinctYears.add(year)
+
+                        // NOW I DON'T KNOW WHAT TO DO HERE IF THE CONFIGURED PERIODS HAVE GAPS IN THEM
+                        // ...OVER TO YOU PAOLO...
+                    }
+                }
+                // TODO (PAOLO TIP) - ADD ONE MORE MONTH AND CHECK THE YEAR
+            } // for each period
+
+            return ModelHelper.pathsExtendedWithCYofOccurrence(
+                    basePaths,
+                    new ArrayList<String>(distinctYears)
+            )
+
+        } else if( coverageParameterHolder.classifier.typeName == "ANNUAL" ){
+            // Later: may make sense to ditch the period labels in favour of simpler direct iteration over annual periods?
+            //
+            List<String> periodLabels = simulation?.parameterization.getPeriodLabels()
+            List<String> calendarYears = new ArrayList<String>();
+            for( String label : periodLabels  ){
+                String year = label.substring(0,4)  // [begin,end)
+                LOG.info("Adding Year : [$year]")
+                assert year.length() == 4
+                calendarYears.add(year)  // [begin,end)
+            }
+
+            if (!calendarYears.empty) {
+                calendarYears.add( (calendarYears.last().toInteger() + 1).toString() )
+            }
+            //todo this could still leave gaps when the periods are not annual
+
+            return ModelHelper.pathsExtendedWithCYofOccurrence(
+                    basePaths,
+                    new ArrayList<String>(calendarYears) //why copying it?
+            )
+        }
     }
 
+    private void logAndThrowSimulationException(String error) {
+        LOG.error(error)
+        throw new SimulationException(error)
+    }
 
     /*AR-111 end*/
     private Set<String> hardcodedTypeSplitEnumRegistry() {
