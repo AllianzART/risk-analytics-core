@@ -188,6 +188,10 @@ public class SimulationConfiguration implements Serializable, Cloneable {
     /* AR-111 - Want something like ['2014','2015','2016'] */
     private Set<String> getSplitByCalendarYear(List<PacketCollector> collectors, Model model) {
         List<String> basePaths = getDrillDownPaths(collectors, DrillDownMode.BY_CALENDARYEAR)
+        if( basePaths == null || basePaths.size()==0){
+            LOG.info("getSplitByCalendarYear(): nothing to do (no basePaths for DrillDownMode.BY_CALENDARYEAR)")
+            return new HashSet<String>()
+        }
         //Set<String> periodLabels = model.periodLabelsBeforeProjectionStart()   //not needed. Might need something similar
         //periodLabels.addAll PeriodLabelsUtil.getPeriodLabels(simulation, model)//if we want to include the update date in the paths...
 
@@ -201,6 +205,7 @@ public class SimulationConfiguration implements Serializable, Cloneable {
         };
 
         // There must be exactly one coverage period ?
+        // Except in tests doh...
         //
         if( coveragePeriodList.size() != 1 ){
             logAndThrowSimulationException(
