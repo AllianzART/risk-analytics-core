@@ -1,5 +1,5 @@
 //Use a custom plugins dir, because different branches use different plugin versions
-grails.project.plugins.dir = "../local-plugins/RiskAnalyticsCore-master"
+grails.project.plugins.dir = "../local-plugins/RiskAnalyticsCore-AR-167"
 
 grails.project.dependency.resolver = "maven"
 
@@ -53,7 +53,7 @@ grails.project.dependency.resolution = {
         compile 'joda-time:joda-time:2.8.1'
         runtime("javax.mail:mail:1.4.4")
         runtime("net.sf.jtidy:jtidy:r938")
-//        runtime("net.sf.cron4j:cron4j:2.2.5")
+
         runtime("com.sun.grizzly:grizzly-utils:1.9.43")
         runtime("jboss:jboss-serialization:4.2.2.GA")
         runtime("trove:trove:1.0.2")
@@ -93,6 +93,7 @@ grails.project.dependency.distribution = {
 }
 
 coverage {
+    enabledByDefault = false
     exclusions = [
             'models/**',
             '**/*Test*',
