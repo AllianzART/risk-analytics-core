@@ -63,13 +63,12 @@ public class Configuration {
 
         s = Holders.config.get(key)?.toString()?.trim()
         if( s != null && s.size() > 0 ){
-            report(log, "Config key (not -D switch) found: ${key}=${s}")
             try {
                 int i = Integer.parseInt(s)
-                report(log, "System property recognised: -D${key}=${i}")
+                report(log, "Config key (not -D switch) found: ${key}=${s}")
                 return i
             } catch (NumberFormatException e) { // Typo maybe
-                report(log, "NOT an int - supplied system property '-D${key}=${s}', defaulting to $defaultValue")
+                report(log, "NOT an int - supplied config entry '${key}=${s}', defaulting to $defaultValue")
                 return defaultValue
             }
         }
