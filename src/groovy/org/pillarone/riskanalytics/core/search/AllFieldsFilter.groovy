@@ -135,11 +135,12 @@ class AllFieldsFilter implements ISearchFilter {
 
     static boolean passesRestriction(CacheItem item, String[] matchTerms) {
 
-        // Name and owner fields found on every item type
+        // Name, owner and id fields found on every item type
         //
-        return FilterHelp.matchName(item, matchTerms)  ||
-               FilterHelp.matchOwner(item, matchTerms) ||
-               internalAccept(item, matchTerms)
+        return  FilterHelp.matchName(item, matchTerms)  ||
+                FilterHelp.matchOwner(item, matchTerms) ||
+                FilterHelp.matchDbId(item, matchTerms) ||
+                internalAccept(item, matchTerms)
     }
 
     // These items must already have failed to match on name / owner if we get here.
@@ -239,6 +240,8 @@ class AllFieldsFilter implements ISearchFilter {
         //
         static final String seedPrefix          = "SEED:"   //randomSeed used in a sim
         static final String seedPrefixEq        = "SEED="
+        static final String dbIdPrefix          = "DBID:"   //DB ID of items
+        static final String dbIdPrefixEq        = "DBID="
         static final String iterationsPrefix    = "ITERATIONS:"   //numberOfIterations used in a sim
         static final String iterationsShort     = "ITS:"
         static final String iterationsPrefixEq  = "ITERATIONS="
@@ -271,6 +274,8 @@ class AllFieldsFilter implements ISearchFilter {
                 iterationsPrefixEq,
                 iterationsShort,
                 iterationsPrefix,
+                dbIdPrefixEq,
+                dbIdPrefix
         ];
 
         // Search terms without a column prefix apply to all columns
@@ -347,6 +352,10 @@ class AllFieldsFilter implements ISearchFilter {
             isAcceptor( term, [seedPrefix] )
         }
 
+        private static boolean isDbIdAcceptor(String term) {
+            isAcceptor( term, [dbIdPrefix] )
+        }
+
         private static boolean isIterationsAcceptor(String term) {
             isAcceptor( term, [iterationsShort, iterationsPrefix] )
         }
@@ -384,10 +393,30 @@ class AllFieldsFilter implements ISearchFilter {
             isEqualsOp( term, [seedPrefixEq] )
         }
 
+        private static boolean isDbIdEqualsOp(String term) {
+            isEqualsOp( term, [dbIdPrefixEq] )
+        }
+
         private static boolean isIterationsEqualsOp(String term) {
             isEqualsOp( term, [iterationsShortEq, iterationsPrefixEq] )
         }
 
+//        // Column-less-operator terms have prefix matches the column in question and end in '<'
+//        // Mainly useful for iterations when cleaning up old sims
+//        //
+//
+//        private static boolean iLessOp(String term, final ArrayList<String> values) {
+//            if (term.startsWith(FILTER_NEGATION) ) return false;
+//            String prefix = getColumnFilterPrefix(term)
+//            if (prefix.endsWith(COLON)) return false
+//            return values.any { it == prefix }
+//        }
+//
+//
+//        private static boolean isIterationsLessOp(String term) {
+//            isLessOp( term, [iterationsShort, iterationsPrefix] )
+//        }
+//
 
         // Rejector terms begin with "!", match the column in question, and end in ':'
         //
@@ -420,6 +449,10 @@ class AllFieldsFilter implements ISearchFilter {
 
         private static boolean isSeedRejector(String term) {
             isRejector( term, [seedPrefix] )
+        }
+
+        private static boolean isDbIdRejector(String term) {
+            isRejector( term, [dbIdPrefix] )
         }
 
         private static boolean isIterationsRejector(String term) {
@@ -459,6 +492,10 @@ class AllFieldsFilter implements ISearchFilter {
             isNotEqualsOp( term, [seedPrefixEq] )
         }
 
+        private static boolean isDbIdNotEqualsOp(String term) {
+            isNotEqualsOp( term, [dbIdPrefix] )
+        }
+
         private static boolean isIterationsNotEqualsOp(String term) {
             isNotEqualsOp( term, [iterationsShortEq, iterationsPrefixEq] )
         }
@@ -482,9 +519,33 @@ class AllFieldsFilter implements ISearchFilter {
             };
         }
 
+        private static boolean matchDbId(CacheItem item, String[] matchTerms) {
+            Long dbId = item?.id
+            final String itemId = ""+dbId
+            matchTerms.any {
+                isDbIdAcceptor(it)    ?  containsAnyCsvElement(itemId, getText(it), item )  // allow listing many
+                : isDbIdRejector(it)    ? !StringUtils.containsIgnoreCase(itemId, getText(it))
+                : isDbIdEqualsOp(it)    ?  equalsAnyCsvElement(itemId, getText(it), item)     // allow listing many
+                    : isDbIdNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(itemId, getText(it))
+                        : false
+            }
+
+        }
+
+        // Case insensitive
+        //
+        static boolean containsAnyCsvElement( String text, String csvTerms, CacheItem item ){
+            String[] terms = csvTerms.split(",")
+            terms.any { StringUtils.containsIgnoreCase(text, it) }
+        }
+        static boolean equalsAnyCsvElement( String text, String csvTerms, CacheItem item ){
+            String[] terms = csvTerms.split(",")
+            terms.any { StringUtils.equalsIgnoreCase(text, it) }
+        }
+
         private static boolean matchState(ParameterizationCacheItem p14n, String[] matchTerms) {
             return matchTerms.any {
-                isStateAcceptor(it) ? StringUtils.containsIgnoreCase(p14n.status?.toString(), getText(it))
+                          isStateAcceptor(it) ? StringUtils.containsIgnoreCase(p14n.status?.toString(), getText(it))
                         : isStateRejector(it) ? !StringUtils.containsIgnoreCase(p14n.status?.toString(), getText(it))
                         : false
             };
@@ -494,9 +555,11 @@ class AllFieldsFilter implements ISearchFilter {
         //
         private static boolean matchDealId(ParameterizationCacheItem p14n, String[] matchTerms) {
             return matchTerms.any {
-                isDealIdAcceptor(it) ? StringUtils.equalsIgnoreCase(p14n?.dealId?.toString(), getText(it))
-                        : isDealIdRejector(it) ? !StringUtils.equalsIgnoreCase(p14n?.dealId?.toString(), getText(it))
-                        : false
+                  isDealIdAcceptor(it)    ?  containsAnyCsvElement(p14n?.dealId?.toString(), getText(it), p14n) //allow listing many
+                : isDealIdEqualsOp(it)    ?  equalsAnyCsvElement(p14n?.dealId?.toString(), getText(it), p14n)   //allow listing many
+                : isDealIdRejector(it)    ? !StringUtils.containsIgnoreCase(p14n?.dealId?.toString(), getText(it))
+                : isDealIdNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(p14n?.dealId?.toString(), getText(it))
+                : false
             };
         }
 
@@ -510,7 +573,7 @@ class AllFieldsFilter implements ISearchFilter {
                 else
                 if (isTagRejector(it)){
                     //e.g. term '!tag:Q4 2013' will match any sim or pn tagged 'H2 2013' (but not 'Q4 2013 ReRun')
-                     !item.tags*.name.any { String tag -> StringUtils.containsIgnoreCase(tag, getText(it)) }
+                    !item.tags*.name.any { String tag -> StringUtils.containsIgnoreCase(tag, getText(it)) }
 
                 }
                 else

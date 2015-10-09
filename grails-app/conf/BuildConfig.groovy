@@ -45,11 +45,12 @@ grails.project.dependency.resolution = {
         }
         compile("org.apache.xmlbeans:xmlbeans:2.3.0")
 
-        compile 'joda-time:joda-time:2.3'
-        //gridgain & deps
-//        compile("org.gridgain:gridgain:3.6.0c") {
-//            transitive = false
-//        }
+        compile('ca.umontreal.iro:ssj:2.5') {
+            exclude "dsol:dsol-xml"
+        }
+        compile 'commons-cli:commons-cli:1.2'
+
+        compile 'joda-time:joda-time:2.8.1'
         runtime("javax.mail:mail:1.4.4")
         runtime("net.sf.jtidy:jtidy:r938")
 //        runtime("net.sf.cron4j:cron4j:2.2.5")
