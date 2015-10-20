@@ -37,5 +37,7 @@ public enum DrillDownMode {
     }
 
     public static final String fromPastName = "From_Past";
+    public static final String fromNextName = "From_Next_Year";
     public static final String fromFutureName = "From_Future";
+
 }
