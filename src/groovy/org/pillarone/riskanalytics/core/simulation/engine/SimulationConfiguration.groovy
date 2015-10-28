@@ -118,14 +118,22 @@ public class SimulationConfiguration implements Serializable, Cloneable {
             SimulationRunner runner = SimulationRunner.createRunner()
             CollectorFactory collectorFactory = runner.currentScope.collectorFactory
             List<PacketCollector> drillDownCollectors = resultConfiguration.getResolvedCollectors(model, collectorFactory)
-            List<String> drillDownPaths = getDrillDownPaths(drillDownCollectors, DrillDownMode.BY_SOURCE)
-            Set paths = ModelHelper.getAllPossibleOutputPaths(model, drillDownPaths)
+
+            List<String> bySourcePaths = getDrillDownPaths(drillDownCollectors, DrillDownMode.BY_SOURCE)
+            Set paths = ModelHelper.getAllPossibleOutputPaths(model, bySourcePaths)
+
             Set<String> inceptionPeriodPaths = getSplitByInceptionDateDrillDownPaths(drillDownCollectors, model)
             paths.addAll(inceptionPeriodPaths)
+
             Set<String> pastVsFuturePaths = getSplitByPastVsFutureDrillDownPaths(drillDownCollectors, model)
             paths.addAll(pastVsFuturePaths)
+
             Set<String> calendarYearPaths = getSplitByCalendarYear(drillDownCollectors, model)
             paths.addAll(calendarYearPaths)
+
+            Set<String> catTypePaths = getSplitByCatType(drillDownCollectors, model)
+            paths.addAll(catTypePaths)
+
             Set<String> typeDrillDownPaths = getPotentialTypeDrillDowns(drillDownCollectors)
             paths.addAll(typeDrillDownPaths)
 
@@ -252,10 +260,10 @@ public class SimulationConfiguration implements Serializable, Cloneable {
             // Assert that there are two lists in the date stuff, and each has same number of entries
             // i.e.: there is an end date for each start date
             //
-            List<List<org.joda.time.DateTime>> dateStuff = periodStuff.values
+            List<List<DateTime>> dateStuff = periodStuff.values
             assert dateStuff.size()==2
-            List<org.joda.time.DateTime> startDates = dateStuff.get(0)
-            List<org.joda.time.DateTime> endDates   = dateStuff.get(1)
+            List<DateTime> startDates = dateStuff.get(0)
+            List<DateTime> endDates   = dateStuff.get(1)
             assert startDates.size() == endDates.size()
 
             // Now we can walk the two lists in dateStuff and accumulate the year numbers
@@ -264,8 +272,8 @@ public class SimulationConfiguration implements Serializable, Cloneable {
             Set<String> distinctYears = new HashSet<String>()
             for( int i = 0; i<startDates.size(); ++i ){
 
-                org.joda.time.DateTime start = startDates.get(i)
-                org.joda.time.DateTime end   = endDates.get(i)
+                DateTime start = startDates.get(i)
+                DateTime end   = endDates.get(i)
 
                 LOG.info("Collecting years from custom period: '$start' to '$end' ")
 
@@ -322,6 +330,16 @@ public class SimulationConfiguration implements Serializable, Cloneable {
                     new ArrayList<String>(calendarYears) //why copying it?
             )
         }
+    }
+
+    /* AR-111 - Want Nat or Non-nat */
+    private Set<String> getSplitByCatType(List<PacketCollector> collectors, Model model) {
+        List<String> basePaths = getDrillDownPaths(collectors, DrillDownMode.BY_CAT_TYPE)
+        if( basePaths == null || basePaths.size()==0 ){
+            LOG.info("getSplitByCatType(): nothing to do (no basePaths for DrillDownMode.BY_CAT_TYPE)")
+            return new HashSet<String>()
+        }
+        return ModelHelper.pathsExtendedWithCatType(basePaths, [DrillDownMode.catType_Nat, DrillDownMode.catType_nonNat]) //AR-111
     }
 
     private void logAndThrowSimulationException(String error) {

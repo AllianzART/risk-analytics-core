@@ -16,12 +16,16 @@ class ModelHelper {
     // todo(sku): try to reuse same constants of PC project
     // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Genius comment above. -__-
     // todo(pa): this is another File That Should Not Be
-    //Much of the stuff below should be refactored inside collectors.
-    //generic path methods should be part of a Path object
-    private static final String PATH_SEPARATOR = ':'
-    private static final String PERIOD = 'period' //coupled
-    private static final String SPLIT = 'split'
-    private static final String CALENDARYEAROFOCCURRENCE = 'calendarYearOfOccurrence'
+    // Much of the stuff below should be refactored inside collectors.
+    // generic path methods should be part of a Path object
+    // Make fields public which are needed in other plugins eg pccf..
+    //
+    public static final String PATH_SEPARATOR = ':'
+    public static final String PERIOD = 'period' //coupled
+    public static final String SPLIT = 'split'
+    public static final String CALENDARYEAROFOCCURRENCE = 'calendarYearOfOccurrence'
+    public static final String CAT_TYPE = 'catType'
+
     private static final String RESERVE_RISK_BASE = 'reserveRiskBase'
     private static final String PREMIUM_RISK_BASE = 'premiumRiskBase'
     private static final String PREMIUM_AND_RESERVE_RISK_BASE = "premiumAndReserveRiskBase";
@@ -322,12 +326,12 @@ class ModelHelper {
         for (String path : paths) {
             String pathWithoutChannel = getPathBase(path)
             String channel = getChannel(path)
-            for (String periodLabel : splitCategories) {
+            for (String splitLabel : splitCategories) {
                 StringBuilder builder = new StringBuilder(pathWithoutChannel)
                 builder.append(PATH_SEPARATOR)
                 builder.append(splitType)
                 builder.append(PATH_SEPARATOR)
-                builder.append(periodLabel)
+                builder.append(splitLabel)
                 builder.append(PATH_SEPARATOR)
                 builder.append(channel)
                 results.add(builder.toString())
@@ -345,6 +349,10 @@ class ModelHelper {
 
     public static Set<String> pathsExtendedWithCYofOccurrence(Collection<String> paths, Collection<String> typeLabels) {
         return pathsExtendedWith(CALENDARYEAROFOCCURRENCE, paths, typeLabels)
+    }
+
+    public static Set<String> pathsExtendedWithCatType(Collection<String> paths, Collection<String> typeLabels) {
+        return pathsExtendedWith(CAT_TYPE, paths, typeLabels)
     }
 
     private static String getPathBase(String path) {
