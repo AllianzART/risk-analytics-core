@@ -96,6 +96,11 @@ class ResultConfiguration extends ModellingItem {
         collectors = dao.collectorInformation.collect { CollectorInformation ci ->
             LOG.debug("About to look up strategy ${ci.collectingStrategyIdentifier}")
             ICollectingModeStrategy arg = CollectingModeFactory.getStrategy(ci.collectingStrategyIdentifier)
+            if(!arg){
+                String warning = "ResultConfig '$nameAndVersion' refers to \n(missing) strategy named: '${ci.collectingStrategyIdentifier}' (Code / DB mismatch?)"
+                LOG.warn(warning)
+                throw new IllegalStateException(warning)
+            }
             LOG.debug("Found ${arg}")
 
             PacketCollector collector = new PacketCollector(arg)
@@ -226,11 +231,11 @@ class ResultConfiguration extends ModellingItem {
     }
 
     @CompileStatic
-    IConfigObjectWriter getWriter() {
+    static IConfigObjectWriter getWriter() {
         return new ResultConfigurationWriter()
     }
 
-    private PathMapping getPathMapping(List<PathMapping> cache, String path) {
+    private static PathMapping getPathMapping(List<PathMapping> cache, String path) {
         PathMapping mapping = cache.find { it.pathName == path }
         if (mapping != null) {
             return mapping
