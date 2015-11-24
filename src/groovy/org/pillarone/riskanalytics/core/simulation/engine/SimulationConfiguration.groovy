@@ -206,6 +206,32 @@ public class SimulationConfiguration implements Serializable, Cloneable {
         // For simple annual case can stick with "Get hold of period labels from p14n and chop off the non year bits"
         // Custom periods: obtain periods directly via: sim -> p14n -> coverage parameter -> ...
         //
+        ArrayList<String> calendarYears = stringListOfCalendarYearsInCoverage()
+
+        return ModelHelper.pathsExtendedWithCYofOccurrence(
+                basePaths,
+                new ArrayList<String>(calendarYears) //why copying it?
+        )
+    }
+
+    private ArrayList<String> stringListOfFinancialQuartersInCoverage() {
+
+        //conservatively adds all four quarters for every financial year in coverage
+
+        ArrayList<String> coveredYears = stringListOfCalendarYearsInCoverage();
+
+        ArrayList<String> output = new ArrayList<String>(coveredYears.size() * 4);
+
+        for (String year in coveredYears) {
+            for (int i = 1; i <= 4; ++i) {
+                output.add(year.substring(year.length()-2) + "Q" + i);
+            }
+        }
+
+        return output;
+    }
+
+    private ArrayList<String> stringListOfCalendarYearsInCoverage() {
         Parameterization parameterization = simulation.parameterization
         List<ParameterHolder> coveragePeriodList = parameterization.parameterHolders.findAll {
             (!it.removed) &&
@@ -230,6 +256,8 @@ public class SimulationConfiguration implements Serializable, Cloneable {
         // OK ready to party perhaps.. debugger shows 'classifier' as CUSTOM for Chrysler vR11 (problem p14n)
         // TODO Maybe worth testing classifierParameters field instead.. as that holds the full periods list in Chrysler case..
         //
+        List<String> calendarYears = new ArrayList<String>();
+
         ParameterObjectParameterHolder coverageParameterHolder = (ParameterObjectParameterHolder) coveragePeriodList.first();
         if( coverageParameterHolder.classifier.typeName == "CUSTOM"  ){
             // For Chryser, the CUSTOM classifier is an instance of com.allianz.art.riskanalytics.pc.global.PeriodStrategyType
@@ -303,16 +331,15 @@ public class SimulationConfiguration implements Serializable, Cloneable {
                 // TODO (PAOLO TIP) - ADD ONE MORE MONTH AND CHECK THE YEAR
             } // for each period
 
-            return ModelHelper.pathsExtendedWithCYofOccurrence(
-                    basePaths,
-                    new ArrayList<String>(distinctYears)
-            )
+            calendarYears = new ArrayList<String>(distinctYears)
+
+
 
         } else if( coverageParameterHolder.classifier.typeName == "ANNUAL" ){
             // Later: may make sense to ditch the period labels in favour of simpler direct iteration over annual periods?
             //
             List<String> periodLabels = simulation?.parameterization.getPeriodLabels()
-            List<String> calendarYears = new ArrayList<String>();
+
             for( String label : periodLabels  ){
                 String year = label.substring(0,4)  // [begin,end)
                 LOG.info("Adding Year : [$year]")
@@ -325,21 +352,30 @@ public class SimulationConfiguration implements Serializable, Cloneable {
             }
             //todo this could still leave gaps when the periods are not annual
 
-            return ModelHelper.pathsExtendedWithCYofOccurrence(
-                    basePaths,
-                    new ArrayList<String>(calendarYears) //why copying it?
-            )
         }
+        calendarYears
     }
 
     /* AR-111 - Want Nat or Non-nat */
+    //now adding quarters here...
     private Set<String> getSplitByCatType(List<PacketCollector> collectors, Model model) {
         List<String> basePaths = getDrillDownPaths(collectors, DrillDownMode.BY_CAT_TYPE)
         if( basePaths == null || basePaths.size()==0 ){
             LOG.info("getSplitByCatType(): nothing to do (no basePaths for DrillDownMode.BY_CAT_TYPE)")
             return new HashSet<String>()
         }
-        return ModelHelper.pathsExtendedWithCatType(basePaths, [DrillDownMode.catType_Nat, DrillDownMode.catType_nonNat]) //AR-111
+
+        ArrayList<String> baseList = [DrillDownMode.catType_Nat, DrillDownMode.catType_nonNat]
+
+        ArrayList<String> extendedList = []
+
+        for (String quarter in stringListOfFinancialQuartersInCoverage()) {
+            for (String catType in baseList) {
+                extendedList.add(quarter + "_" + catType)
+            }
+        }
+
+        return ModelHelper.pathsExtendedWithCatType(basePaths, extendedList) //AR-111
     }
 
     private void logAndThrowSimulationException(String error) {
