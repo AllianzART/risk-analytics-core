@@ -224,7 +224,7 @@ public class SimulationConfiguration implements Serializable, Cloneable {
 
         for (String year in coveredYears) {
             for (int i = 1; i <= 4; ++i) {
-                output.add(year.substring(year.length()-2) + "Q" + i);
+                output.add(year/*.substring(year.length()-2)*/ + "Q" + i);
             }
         }
 
