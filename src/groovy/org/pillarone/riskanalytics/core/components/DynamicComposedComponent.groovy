@@ -25,12 +25,7 @@ abstract class DynamicComposedComponent extends ComposedComponent {
     }
 
     public Component getComponentByName(String name) {
-        for (Component c in componentList) {
-            if (c.name == name) {
-                return c
-            }
-        }
-        return null
+        return componentList.find { it.name == name }
     }
 
     public void addSubComponent(Component component) {
@@ -51,12 +46,7 @@ abstract class DynamicComposedComponent extends ComposedComponent {
     }
 
     private boolean isComponentNameUnique(Component newComponent) {
-        for (Component component: componentList) {
-            if (component.name == newComponent.name) {
-                return false
-            }
-        }
-        return true
+        return ! componentList.any{ it.name == newComponent.name }
     }
 
     Object propertyMissing(String name) {

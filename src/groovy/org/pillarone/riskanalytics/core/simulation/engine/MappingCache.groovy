@@ -7,6 +7,7 @@ import org.hibernate.HibernateException
 import org.pillarone.riskanalytics.core.output.CollectorMapping
 import org.pillarone.riskanalytics.core.output.FieldMapping
 import org.pillarone.riskanalytics.core.output.PathMapping
+import org.pillarone.riskanalytics.core.simulation.SimulationException
 
 /**
  * A cache which enables fast access to PathMapping, FieldMapping & CollectorMapping objects.
@@ -80,17 +81,29 @@ public class MappingCache implements Serializable {
     public synchronized PathMapping lookupPath(String path) {
         PathMapping pathMapping = paths[path]
         if (pathMapping == null) {
-            pathMapping = PathMapping.findByPathName(path)
-            if (pathMapping == null) {
-                try {
+            LOG.info("Path '$path' not found in pathmapping cache - try lookup in DB")
+            try{
+                pathMapping = PathMapping.findByPathName(path)
+                if (pathMapping == null) {
+                    LOG.info("Path '$path' not found in DB - try create and save to DB")
                     pathMapping = new PathMapping(pathName: path).save()
                 }
-                catch (HibernateException ex) {
-                    throw new HibernateException("Split collectors are allowed in sub components only! Please change the result template accordingly" +
-                                                 "\nOn KTI branch paths have to be persisted before simulation run! Path " + path + " not found!" +
-                                                 "\nPlease contact development providing them the missing path if the error occurred in a sub component.", ex)
+            }
+            catch(IllegalStateException ise){
+                String message = ise.getMessage()
+                if( message.contains('outside of a Grails application') ){
+                    throw new SimulationException ("Looks like external gridnode tried accessing DB (no grails). Path='$path'.", ise)
+                } else {
+                    throw new SimulationException(ise);
                 }
             }
+            // TODO: replace with catching general exception rethrow as SimulationException
+            catch (HibernateException ex) {
+                throw new HibernateException("Split collectors are allowed in sub components only! Please change the result template accordingly" +
+                        "\nOn KTI branch paths have to be persisted before simulation run! Path " + path + " not found!" +
+                        "\nPlease contact development providing them the missing path if the error occurred in a sub component.", ex)
+            }
+
             paths[path] = pathMapping
         }
         return pathMapping;

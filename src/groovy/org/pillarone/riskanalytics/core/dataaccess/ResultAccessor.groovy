@@ -290,7 +290,7 @@ abstract class ResultAccessor {
         }
     }
 
-    static double[] getValuesSorted(SimulationRun simulationRun, int periodIndex, String pathName, String collectorName, String fieldName) {
+    static double[] getValuesSorted(SimulationRun simulationRun, int periodIndex, String pathName, String collectorName, String fieldName) {// TODO Avoid using strings when ids are available to caller !  But take caches into consideration - might be important !!
         //delegate to java class -> performance improvement in PSC
         return fillWithZeroes(simulationRun, (double[]) IterationFileAccessor.getValuesSorted(simulationRun.id, periodIndex, getPathId(pathName), getCollectorId(collectorName), getFieldId(fieldName)))
     }
@@ -321,7 +321,7 @@ abstract class ResultAccessor {
     @CompileStatic
     private static double[] fillWithZeroes(SimulationRun run, double[] results) {
         // number of iterations may be smaller as results length if a single collector is used
-        if (run.iterations <= results.length || results.length == 0) return results
+        if (run.iterations <= results.length || results.length == 0) return results // TODO Warning: if SINGLE collector got too few packets, this code would treat as AGGREGATE ?!
 
         double[] result = new double[run.iterations]
         System.arraycopy(results, 0, result, 0, results.length)

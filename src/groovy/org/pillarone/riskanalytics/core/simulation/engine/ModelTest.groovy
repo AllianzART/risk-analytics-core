@@ -19,6 +19,7 @@ import org.pillarone.riskanalytics.core.output.SimulationRun
 import org.pillarone.riskanalytics.core.simulation.engine.grid.SimulationBlock
 import org.pillarone.riskanalytics.core.simulation.item.*
 import org.pillarone.riskanalytics.core.simulation.item.parameter.ParameterHolder
+import org.pillarone.riskanalytics.core.simulation.item.parameter.ParameterHolderFactory
 import org.pillarone.riskanalytics.core.util.MathUtils
 
 import static org.junit.Assert.*
@@ -129,6 +130,10 @@ abstract class ModelTest {
             for (ParameterHolder parameterHolder in getRuntimeParameters()) {
                 run.addParameter(parameterHolder)
             }
+
+//No idea why line below was added - it breaks art-models test Artisan2ART953ModelTests, so I'm commenting it back out FR 2015-04-16
+//            run.addParameter(ParameterHolderFactory.getHolder("runtimeUpdateDate",0,new DateTime(2009, 1, 1, 0, 0, 0, 0))) //AR-111 - dummy update date
+
 
             assertNotNull run.save()
             refFileName = getPath() + getResultFileName() + "_ref.tsl"

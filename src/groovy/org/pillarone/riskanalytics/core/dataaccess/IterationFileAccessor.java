@@ -11,7 +11,7 @@ public class IterationFileAccessor {
     private static Log LOG = LogFactory.getLog( IterationFileAccessor.class );
     protected DataInputStream dis;
     protected int iteration;
-    protected List<DateTimeValuePair> value;
+    protected List<DateTimeValuePair> values;
 
     // TODO If this becomes perf bottleneck try this approach from Bruce Eckel:
     // http://www.java2s.com/Code/Java/File-Input-Output/Mappinganentirefileintomemoryforreading.htm
@@ -75,12 +75,12 @@ public class IterationFileAccessor {
         if (dis != null && dis.available() > 4) {
             iteration = dis.readInt();
             int len = dis.readInt();
-            value = new ArrayList<DateTimeValuePair>(len);
+            values = new ArrayList<DateTimeValuePair>(len);
             for (int i = 0; i < len; i++) {
                 final double doubleValue = dis.readDouble();
                 final long dateTimeLong = dis.readLong();
                 DateTimeValuePair dateTimeValuePair = new DateTimeValuePair( dateTimeLong , doubleValue);
-                value.add(dateTimeValuePair);
+                values.add(dateTimeValuePair);
             }
             return true;
         }
@@ -93,14 +93,14 @@ public class IterationFileAccessor {
 
     public double getValue() {
         double result = 0;
-        for (DateTimeValuePair d : value) {
+        for (DateTimeValuePair d : values) {
             result += d.aDouble;
         }
         return result;
     }
 
     public List<DateTimeValuePair> getSingleValues() {
-        return value;
+        return values;
     }
 
     public static List getValuesSorted(Long runId, int period, long pathId, long collectorId, long fieldId) throws Exception {

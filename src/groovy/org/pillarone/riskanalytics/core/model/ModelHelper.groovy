@@ -14,9 +14,18 @@ import org.pillarone.riskanalytics.core.components.DynamicComposedComponent
 class ModelHelper {
 
     // todo(sku): try to reuse same constants of PC project
-    private static final String PATH_SEPARATOR = ':'
-    private static final String PERIOD = 'period'
-    private static final String SPLIT = 'split'
+    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Genius comment above. -__-
+    // todo(pa): this is another File That Should Not Be
+    // Much of the stuff below should be refactored inside collectors.
+    // generic path methods should be part of a Path object
+    // Make fields public which are needed in other plugins eg pccf..
+    //
+    public static final String PATH_SEPARATOR = ':'
+    public static final String PERIOD = 'period' //coupled
+    public static final String SPLIT = 'split'
+    public static final String CALENDARYEAROFOCCURRENCE = 'calendarYearOfOccurrence'
+    public static final String CAT_TYPE = 'catType'
+
     private static final String RESERVE_RISK_BASE = 'reserveRiskBase'
     private static final String PREMIUM_RISK_BASE = 'premiumRiskBase'
     private static final String PREMIUM_AND_RESERVE_RISK_BASE = "premiumAndReserveRiskBase";
@@ -312,17 +321,17 @@ class ModelHelper {
         }
     }
 
-    public static Set<String> pathsExtendedWithPeriod(List<String> paths, List<String> periodLabels) {
+    public static Set<String> pathsExtendedWith(String splitType, Collection<String> paths, Collection<String> splitCategories) {
         Set<String> results = new HashSet<String>()
         for (String path : paths) {
             String pathWithoutChannel = getPathBase(path)
             String channel = getChannel(path)
-            for (String periodLabel : periodLabels) {
+            for (String splitLabel : splitCategories) {
                 StringBuilder builder = new StringBuilder(pathWithoutChannel)
                 builder.append(PATH_SEPARATOR)
-                builder.append(PERIOD)
+                builder.append(splitType)
                 builder.append(PATH_SEPARATOR)
-                builder.append(periodLabel)
+                builder.append(splitLabel)
                 builder.append(PATH_SEPARATOR)
                 builder.append(channel)
                 results.add(builder.toString())
@@ -330,24 +339,20 @@ class ModelHelper {
         }
         return results
     }
+    public static Set<String> pathsExtendedWithPeriod(List<String> paths, List<String> periodLabels) {
+        return pathsExtendedWith(PERIOD,paths,periodLabels)
+    }
 
     public static Set<String> pathsExtendedWithType(Collection<String> paths, Collection<String> typeLabels) {
-        Set<String> results = new HashSet<String>()
-        for (String path : paths) {
-            String pathWithoutChannel = getPathBase(path)
-            String channel = getChannel(path)
-            for (String type : typeLabels) {
-                StringBuilder builder = new StringBuilder(pathWithoutChannel)
-                builder.append(PATH_SEPARATOR)
-                builder.append(SPLIT)
-                builder.append(PATH_SEPARATOR)
-                builder.append(type)
-                builder.append(PATH_SEPARATOR)
-                builder.append(channel)
-                results.add(builder.toString())
-            }
-        }
-        return results
+        return pathsExtendedWith(SPLIT, paths, typeLabels)
+    }
+
+    public static Set<String> pathsExtendedWithCYofOccurrence(Collection<String> paths, Collection<String> typeLabels) {
+        return pathsExtendedWith(CALENDARYEAROFOCCURRENCE, paths, typeLabels)
+    }
+
+    public static Set<String> pathsExtendedWithCatType(Collection<String> paths, Collection<String> typeLabels) {
+        return pathsExtendedWith(CAT_TYPE, paths, typeLabels)
     }
 
     private static String getPathBase(String path) {

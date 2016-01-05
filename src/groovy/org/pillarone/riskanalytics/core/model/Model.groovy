@@ -57,11 +57,11 @@ abstract class Model {
         return result
     }
 
-    private void addComponentsRecursively(Component component, List<Component> components) {
-        components.add(component);
+    private void addComponentsRecursively(Component component, List<Component> list) {
+        list.add(component);
         if (component instanceof ComposedComponent) {
-            for (Component nestedComponent : component.allSubComponents()) {
-                addComponentsRecursively(nestedComponent, components);
+            for (Component sub : component.allSubComponents()) {
+                addComponentsRecursively(sub, list);
             }
         }
     }
