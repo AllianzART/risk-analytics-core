@@ -47,7 +47,7 @@ public class PeriodAction implements Action {
                 starter.start()
             }
         } else {
-            if (LOG.isWarnEnabled()) LOG.warn "No model instance available."
+            LOG.warn "No model instance available."
         }
         //ContinuousPeriodCounter & Scope start at 0, so the period has to be increased after its execution
         periodScope.prepareNextPeriod()

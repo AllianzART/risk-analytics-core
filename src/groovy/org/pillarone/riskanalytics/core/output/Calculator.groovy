@@ -136,7 +136,7 @@ class Calculator {
 
         long time = System.currentTimeMillis()
 
-        double[] results = ResultAccessor.getValuesSorted(run, periodIndex, path.pathName, collector.collectorName, field.fieldName) as double[]
+        double[] results = ResultAccessor.getValuesSorted(run, periodIndex, path.pathName, collector.collectorName, field.fieldName) as double[] // TODO Avoid using strings when ids are available !  But take caches into consideration - might be important !!
 
         LOG.debug("Loaded results for calculations (${path.pathName}, period: $periodIndex) in ${System.currentTimeMillis() - time}ms")
         return results

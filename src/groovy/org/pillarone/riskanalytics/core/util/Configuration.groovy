@@ -61,16 +61,20 @@ public class Configuration {
             }
         }
 
-        s = Holders.config.get(key)?.toString()?.trim()
-        if( s != null && s.size() > 0 ){
-            try {
-                int i = Integer.parseInt(s)
-                report(log, "Config key (not -D switch) found: ${key}=${s}")
-                return i
-            } catch (NumberFormatException e) { // Typo maybe
-                report(log, "NOT an int - supplied config entry '${key}=${s}', defaulting to $defaultValue")
-                return defaultValue
+        if(Holders.config != null){
+            s = Holders.config.get(key)?.toString()?.trim()
+            if( s != null && s.size() > 0 ){
+                try {
+                    int i = Integer.parseInt(s)
+                    report(log, "Config key (not -D switch) found: ${key}=${s}")
+                    return i
+                } catch (NumberFormatException e) { // Typo maybe
+                    report(log, "NOT an int - supplied config entry '${key}=${s}', defaulting to $defaultValue")
+                    return defaultValue
+                }
             }
+        }else{
+            report(log,"Holders.config is null! Cannot look in external config file..")
         }
 
         report(log, "No useful config or -D switch found for '$key', defaulting to $defaultValue")

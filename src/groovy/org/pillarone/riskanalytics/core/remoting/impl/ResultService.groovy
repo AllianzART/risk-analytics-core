@@ -146,7 +146,8 @@ class ResultService implements IResultService {
     }
 
     List<SimulationInfo> getSimulationInfos(long parameterizationId) {
-        List<SimulationRun> runs = SimulationRun.findAllByParameterization(ParameterizationDAO.get(parameterizationId))
+        // AR-197 Return sims in newer-first order (see http://stackoverflow.com/a/3691613)
+        List<SimulationRun> runs = SimulationRun.findAllByParameterization(ParameterizationDAO.get(parameterizationId), [sort:"id", order:"desc"])
 
         List<SimulationInfo> result = []
         for (SimulationRun run in runs) {

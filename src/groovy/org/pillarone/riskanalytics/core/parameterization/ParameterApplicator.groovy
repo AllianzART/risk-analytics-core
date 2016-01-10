@@ -98,7 +98,10 @@ public class ParameterApplicator {
         prepareParameter(model, parameter.parameterValue, parameter.parameterPropertyName)
     }
 
-    protected void prepareParameter(Model model, def parameterValue, String context) {}
+    //todo: Remove - noop
+    protected void prepareParameter(Model model, def parameterValue, String context) {
+
+    }
 
     @CompileStatic
     protected void prepareParameter(Model model, AbstractMultiDimensionalParameter parameterValue, String context) {
