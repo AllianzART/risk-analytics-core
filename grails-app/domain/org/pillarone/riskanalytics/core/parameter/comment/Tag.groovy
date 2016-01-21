@@ -5,8 +5,8 @@ import org.pillarone.riskanalytics.core.simulation.item.parameter.comment.EnumTa
 class Tag {
 
     static final String LOCKED_TAG = 'LOCKED'
-    static String azReTagMatcherRegex = System.getProperty("azReTagMatcherRegex", "^Allianz Re\$" )
-    static String qtrTagMatcherRegex = System.getProperty("qtrTagMatcherRegex", "^1[1-9]Q[1234]\$" )
+    public static final String azReTagMatcherRegex = System.getProperty("azReTagMatcherRegex", "^Allianz Re\$" )
+    public static final String qtrTagMatcherRegex = System.getProperty("qtrTagMatcherRegex", "^1[1-9]Q[1234]\$" )
 
     String name
     EnumTagType tagType = EnumTagType.COMMENT
