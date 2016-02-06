@@ -1,6 +1,7 @@
 package org.pillarone.riskanalytics.core.remoting.impl
 
 import groovy.transform.CompileStatic
+import org.h2.util.StringUtils
 
 import java.text.SimpleDateFormat
 import org.pillarone.riskanalytics.core.ParameterizationDAO
@@ -155,7 +156,7 @@ class ResultService implements IResultService {
             info.simulationId = run.id
             info.name = run.name
             info.runDate = run.startTime?.toDate()
-            info.user = "" //TODO
+            info.user = StringUtils.isNullOrEmpty(run.creator?.username) ? "" : run.creator?.username
             info.iterationCount = run.iterations
             info.resultTemplateName = run.resultConfiguration.name
             info.comment = run.comment

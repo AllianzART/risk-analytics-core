@@ -6,11 +6,14 @@ import net.sf.jasperreports.engine.export.ooxml.JRXlsxExporter;
 import net.sf.jasperreports.engine.util.JRLoader;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.export.JRXlsExporter;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 
 import java.io.ByteArrayOutputStream;
 
 public abstract class ReportFactory {
+    protected static Log LOG = LogFactory.getLog(ReportFactory.class);
 
     private interface JRExporterCreator {
         JRExporter createExporter();
@@ -99,6 +102,7 @@ public abstract class ReportFactory {
             // AR-61 UnsupportedReportParameterException is already handled in CreateReportAction, so don't divert it
             throw urpe;
         } catch (Exception e) {
+            LOG.warn("Caught exception from createReport(IReportModel:"+reportModel+", IReportData:"+reportData+", JRExporter:"+exporter+" )", e);
             throw new RuntimeException("Failed to create Jasper report: " +
                     e.getMessage()
                     + "\nreportModel: " + reportModel

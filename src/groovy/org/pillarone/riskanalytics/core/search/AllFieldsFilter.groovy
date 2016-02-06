@@ -8,6 +8,7 @@ import org.pillarone.riskanalytics.core.modellingitem.CacheItem
 import org.pillarone.riskanalytics.core.modellingitem.ParameterizationCacheItem
 import org.pillarone.riskanalytics.core.modellingitem.ResourceCacheItem
 import org.pillarone.riskanalytics.core.modellingitem.SimulationCacheItem
+import org.pillarone.riskanalytics.core.util.Configuration
 
 /* frahman 2014-01-02 Extended filtering syntax introduced.
 
@@ -89,7 +90,8 @@ class AllFieldsFilter implements ISearchFilter {
 
     protected static Log LOG = LogFactory.getLog(AllFieldsFilter)
     private static
-    final boolean matchSimulationResultsOnDealId = System.getProperty("matchSimulationResultsOnDealId", "true").equalsIgnoreCase("true");
+    final boolean matchSimulationResultsOnDealId = Configuration.coreGetAndLogStringConfig("matchSimulationResultsOnDealId", "true").equalsIgnoreCase("true");
+    private static final defaultSearchFilterText = Configuration.coreGetAndLogStringConfig("defaultSearchFilterText", "")
 
     // It can be counterproductive to filter batches.  You search for p14ns to put into a batch but the batch name
     // is not likely to match the same filter exactly, so you can't see the batch once it's created. So by default
@@ -99,7 +101,7 @@ class AllFieldsFilter implements ISearchFilter {
 
     static final String AND_SEPARATOR = " AND "
     static final String OR_SEPARATOR = " OR "
-    String query = ""
+    String query = defaultSearchFilterText
 
     List<String[]> matchTerms;
 
