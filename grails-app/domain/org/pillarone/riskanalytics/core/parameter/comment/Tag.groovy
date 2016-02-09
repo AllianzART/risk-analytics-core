@@ -37,4 +37,18 @@ class Tag {
     boolean isQuarterTag(){
         return name.matches(qtrTagMatcherRegex)
     }
+
+    String getQuarter(){
+        if(isQuarterTag()){
+            return name.substring(2)
+        }
+        throw new IllegalStateException("Cannot get Qtr digits from non-Quarter tag '$name'")
+    }
+
+    String getYYDigits(){
+        if(isQuarterTag()){
+            return name.substring(0,2)
+        }
+        throw new IllegalStateException("Cannot get YY digits from non-Quarter tag '$name'")
+    }
 }
