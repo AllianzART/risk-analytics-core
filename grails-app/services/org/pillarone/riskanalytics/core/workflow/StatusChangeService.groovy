@@ -4,6 +4,7 @@ import grails.orm.HibernateCriteriaBuilder
 import grails.util.Holders
 import groovy.transform.CompileStatic
 import groovy.transform.TypeChecked
+import org.apache.commons.lang.StringUtils
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 import org.joda.time.DateTime
@@ -18,12 +19,43 @@ import org.pillarone.riskanalytics.core.simulation.item.parameter.ParameterHolde
 import org.pillarone.riskanalytics.core.simulation.item.parameter.comment.Comment
 import org.pillarone.riskanalytics.core.simulation.item.parameter.comment.workflow.WorkflowComment
 import org.pillarone.riskanalytics.core.user.UserManagement
+import org.pillarone.riskanalytics.core.util.Configuration
+
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 
 import static org.pillarone.riskanalytics.core.workflow.Status.*
 
 class StatusChangeService {
 
-    private static Log LOG = LogFactory.getLog(StatusChangeService)
+    private static final Log LOG = LogFactory.getLog(StatusChangeService)
+
+    // ^(  = start 1st capture group at start of text
+    //   .+ = captured group of text up to (not including) two spaces
+    //   )  = end capture group followed by two spaces
+    // \\(  = literal open bracket
+    //   (  = start capture group
+    //   [^)]+  = captured group of text inside the brackets (sequence of non-close-bracket chars)
+    //   )  = end capture group
+    // \\) = literal close bracket
+    //
+    private static final String atomDealNameRegex = Configuration.coreGetAndLogStringConfig("atomDealNameRegex", "^(.+)  \\(([^)]+)\\)");
+    private static final Pattern atomDealNamePattern = Pattern.compile(atomDealNameRegex);
+    private static final String atomDealStatusList = Configuration.coreGetAndLogStringConfig( "atomDealStatusList",
+        [
+            'Inquiry',
+            'Triage',
+            'Active',
+            'In Force',
+            'In Force - Final',
+            'Declined by ART',
+            'Declined by Client',
+            'Expired Run-Off',
+            'Expired Commuted',
+            'Old version amended'
+        ].join(',')
+    );
+    private static final Set<String> atomDealStatusSet = new HashSet<String>(Arrays.asList(StringUtils.split(atomDealStatusList,',')));
 
     @CompileStatic
     public static StatusChangeService getService() {
@@ -39,27 +71,26 @@ class StatusChangeService {
                     parameterization.status = REJECTED
                     parameterization.save()
                 } else if (parameterization.status == NONE) {
+                    // NONE -> DATA_ENTRY means promoting sandbox p14n to a workflow for chosen deal
+                    // Need to check : Are there already any workflows for chosen deal (in same model tree)?
+                    //
                     HibernateCriteriaBuilder criteria = ParameterizationDAO.createCriteria()
                     List<ParameterizationDAO> p14nsInWorkflow = criteria.list {
                         and {
-                            eq("dealId", parameterization.dealId)
-                            ne("id", parameterization.id)
-                            ne("status", org.pillarone.riskanalytics.core.workflow.Status.NONE)
-                            //Check model class name as well
-                            eq("modelClassName", parameterization.modelClass.name)
+                            eq("dealId",            parameterization.dealId)            // looking for p14ns with chosen deal set
+                            ne("id",                parameterization.id)                // excluding selected p14n
+                            ne("status",            Status.NONE)                        // and only workflows, not sandbox models
+                            eq("modelClassName",    parameterization.modelClass.name)   // and restricted to current model tree
                         }
                     }
 
                     if (!p14nsInWorkflow.isEmpty()) {
                         ParameterizationDAO firstExistingWorkflowP14n = p14nsInWorkflow.first();
                         String nameAndVersion = firstExistingWorkflowP14n?.name + " v" + firstExistingWorkflowP14n?.itemVersion;
-                        throw new WorkflowException(
-                                "P14n '" + parameterization.name + "'",
-                                DATA_ENTRY,
-                                "Deal '" + getTransactionName(parameterization.dealId) + "' already used in Model " + (parameterization.modelClass?.simpleName - "Model") +
-                                        "\nEg in workflow P14n: '" + nameAndVersion + "'" +
-                                        "\nCan you work with one of the existing workflow P14ns, or choose a different deal ?"
-                        )
+                        String w = "Sorry, ${parameterization.modelClass?.simpleName} already has a workflow for deal '${getTransactionName(parameterization.dealId)}'," +
+                                "\nEg '$nameAndVersion'" +
+                                "\nHint: Choose different deal / use existing workflow / try different model tree.."
+                        throw new WorkflowException( "P14n '" + parameterization.name + "'", DATA_ENTRY,  w )
                     }
                 }
                 Parameterization newParameterization = incrementVersion(parameterization, parameterization.status == NONE)
@@ -196,8 +227,37 @@ class StatusChangeService {
 
     @CompileStatic
     private String getTransactionName(long dealId) {
-        return RemotingUtils.allTransactions.find { TransactionInfo it -> it.dealId == dealId }.name
+        return dropStatusSuffix(RemotingUtils.allTransactions.find { TransactionInfo it -> it.dealId == dealId }.name)
     }
+
+    private String dropStatusSuffix( String name ){
+        if(atomDealNameRegex.empty || atomDealNameRegex.equalsIgnoreCase("disabled")){
+            LOG.info(String.format("atomDealNameRegex '%s', keeping suffixes, returning '%s'", atomDealNameRegex, name ));
+            return name
+        }
+        Matcher matcher = atomDealNamePattern.matcher(name);
+        if( !matcher.find() ){
+            LOG.info(String.format("regex '%s' doesn't match '%s'", atomDealNameRegex, name ));
+            return name;
+        }
+        // Strip, if suffix is known status (in expected format)..
+        //
+        String bareName = matcher.group(1);
+        String status = matcher.group(2);
+        LOG.info(String.format("matched name is: '%s' ", bareName ));
+        LOG.info(String.format("matched status is: '%s' ", status ));
+
+        if( atomDealStatusSet.contains(status) ){
+
+            LOG.info(String.format("'%s'is a known ATOM status, returning bare name '%s'", status, bareName ));
+            return bareName;
+        }
+
+        LOG.warn(String.format("'%s'is unknown in ATOM must be a spurious coincidence of naming in the deal, returning name '%s'", status, name ));
+
+        return name;
+    }
+
 }
 
 @CompileStatic
