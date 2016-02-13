@@ -28,34 +28,43 @@ import static org.pillarone.riskanalytics.core.workflow.Status.*
 
 class StatusChangeService {
 
-    private static final Log LOG = LogFactory.getLog(StatusChangeService)
+    private final Log LOG = LogFactory.getLog(StatusChangeService)
 
-    // ^(  = start 1st capture group at start of text
+    private final String atomDealNameRegex = Configuration.coreGetAndLogStringConfig(
+            "atomDealNameRegex",
+            "^(.+)  \\(([^)]+)\\)"
+    );
+    // Notes on regex
+    // --------------
+    // ^(  = start group capturing deal name
     //   .+ = captured group of text up to (not including) two spaces
     //   )  = end capture group followed by two spaces
     // \\(  = literal open bracket
-    //   (  = start capture group
+    //   (  = start group capturing deal state
     //   [^)]+  = captured group of text inside the brackets (sequence of non-close-bracket chars)
     //   )  = end capture group
     // \\) = literal close bracket
     //
-    private static final String atomDealNameRegex = Configuration.coreGetAndLogStringConfig("atomDealNameRegex", "^(.+)  \\(([^)]+)\\)");
-    private static final Pattern atomDealNamePattern = Pattern.compile(atomDealNameRegex);
-    private static final String atomDealStatusList = Configuration.coreGetAndLogStringConfig( "atomDealStatusList",
+
+    private final Pattern atomDealNamePattern = Pattern.compile(atomDealNameRegex)
+    private final String defaultAtomDealStatusList = //'Inquiry,Triage,Active,In Force,In Force - Final,Declined by ART,Declined by Client,Expired Run-Off,Expired Commuted,Old version amended'
         [
-            'Inquiry',
-            'Triage',
-            'Active',
-            'In Force',
-            'In Force - Final',
-            'Declined by ART',
-            'Declined by Client',
-            'Expired Run-Off',
-            'Expired Commuted',
-            'Old version amended'
-        ].join(',')
+                'Inquiry',
+                'Triage',
+                'Active',
+                'In Force',
+                'In Force - Final',
+                'Declined by ART',
+                'Declined by Client',
+                'Expired Run-Off',
+                'Expired Commuted',
+                'Old version amended'
+        ].join(',');
+
+    private  final String atomDealStatusList = Configuration.coreGetAndLogStringConfig(
+            "atomDealStatusList", defaultAtomDealStatusList
     );
-    private static final Set<String> atomDealStatusSet = new HashSet<String>(Arrays.asList(StringUtils.split(atomDealStatusList,',')));
+    private  final Set<String> atomDealStatusSet = new HashSet<String>(Arrays.asList(StringUtils.split(atomDealStatusList,',')));
 
     @CompileStatic
     public static StatusChangeService getService() {
