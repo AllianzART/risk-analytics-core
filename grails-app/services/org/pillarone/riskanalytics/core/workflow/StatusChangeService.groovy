@@ -75,7 +75,7 @@ class StatusChangeService {
             (NONE): { Parameterization parameterization ->
                 throw new IllegalStateException("Cannot change status to ${NONE.getDisplayName()}")
             },
-            (DATA_ENTRY): { Parameterization parameterization ->
+            (DATA_ENTRY): { Parameterization parameterization, Parameterization sandboxModelToClone = null ->
                 if (parameterization.status == IN_REVIEW) {
                     parameterization.status = REJECTED
                     parameterization.save()
@@ -102,7 +102,13 @@ class StatusChangeService {
                         throw new WorkflowException( "P14n '" + parameterization.name + "'", DATA_ENTRY,  w )
                     }
                 }
-                Parameterization newParameterization = incrementVersion(parameterization, parameterization.status == NONE)
+
+                // IN_PRODUCTION -> DATA_ENTRY : opening new workflow version for existing workflow top version.
+                // Either from itself or from a selected sandbox model to adopt into the workflow...
+                // When incrementing the version number, must clone sandbox model if supplied..
+                //
+                Parameterization newParameterization = incrementVersion(parameterization, parameterization.status==NONE,
+                                                                        sandboxModelToClone                             )
                 newParameterization.status = DATA_ENTRY
                 newParameterization.save()
                 if (parameterization.status == Status.REJECTED) {
@@ -151,6 +157,19 @@ class StatusChangeService {
         return newParameterization
     }
 
+    // AR-190 New method takes a sandbox p14n to clone instead.
+    // Allows new workflow version from existing sandbox model.
+    //
+    @CompileStatic
+    Parameterization changeStatus(Parameterization parameterization, Status to, Parameterization sandboxModelToClone) {
+        Parameterization newParameterization = null
+        reviewComments(sandboxModelToClone ?: parameterization, to)
+        AuditLog.withTransaction { status ->
+            newParameterization = (Parameterization) actions.get(to).call(parameterization, sandboxModelToClone)
+        }
+        return newParameterization
+    }
+
     void clearAudit(Parameterization parameterization) {
         AuditLog.withTransaction {
             parameterization.load(false)
@@ -160,25 +179,44 @@ class StatusChangeService {
     }
 
     //TODO: re-use MIF
-
+    //(FR: What's a MIF?)
     @CompileStatic
-    private Parameterization incrementVersion(Parameterization item, boolean newR) {
-        String parameterizationName = newR ? getTransactionName(item.dealId) : item.name
+    private Parameterization incrementVersion(Parameterization item, boolean newWorkflow, Parameterization sandboxModelToClone=null) {
+
+        // sanity: if we are adopting a sandbox model into existing workflow, cannot be creating a new workflow
+        if(sandboxModelToClone){
+            if(newWorkflow){
+                String e= "FIXME: adopting sandbox p14n ($sandboxModelToClone?.nameAndVersion) into workflow ($item.nameAndVersion) yet 'newWorkflow' true!"
+                LOG.error(e)
+                throw new IllegalStateException(e)
+            }
+        }
+        String parameterizationName = newWorkflow ? getTransactionName(item.dealId) : item.name
         Parameterization newItem = new Parameterization(parameterizationName)
 
-        List<ParameterHolder> newParameters = ParameterizationHelper.copyParameters(item.parameters)
+        Parameterization source = sandboxModelToClone ?: item
+        if( source.modelClass != item.modelClass){ //difference can only arise if sandboxModelToClone is supplied
+            String className = source?.modelClass?.getSimpleName()
+            String e = "FIXME: wrong model class ($className) in p14n ($sandboxModelToClone?.nameAndVersion) to adopt into workflow ($item.nameAndVersion)"
+            LOG.error(e)
+            throw new IllegalStateException(e)
+        }
+
+        List<ParameterHolder> newParameters = ParameterizationHelper.copyParameters(source.parameters)
         newParameters.each { ParameterHolder it ->
             newItem.addParameter(it)
         }
-        newItem.periodCount = item.periodCount
-        newItem.periodLabels = item.periodLabels
+        newItem.periodCount = source.periodCount
+        newItem.periodLabels = source.periodLabels
         newItem.modelClass = item.modelClass
-        newItem.versionNumber = newR ? new VersionNumber("R1") : VersionNumber.incrementVersion(item)
+        newItem.versionNumber = newWorkflow ? new VersionNumber("R1") : VersionNumber.incrementVersion(item)
         newItem.dealId = item.dealId
-        newItem.valuationDate = item.valuationDate
+        newItem.valuationDate = source.valuationDate ?: item.valuationDate
 
-        for (Comment comment in item.comments) {
-            if (comment instanceof WorkflowComment) {
+        // Avoid duplication of comments eg when the workflow was saved as a sandbox then edited further..
+        //
+        for (Comment comment in source.comments) {
+            if (comment instanceof WorkflowComment) { // note: there are NO workflow comments in Artisan db as of 20160216
                 if ((comment as WorkflowComment).status != IssueStatus.CLOSED) {
                     newItem.addComment(comment.clone())
                 }
