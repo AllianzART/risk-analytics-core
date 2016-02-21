@@ -9,6 +9,7 @@ import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 import org.joda.time.DateTime
 import org.pillarone.riskanalytics.core.ParameterizationDAO
+import org.pillarone.riskanalytics.core.parameter.comment.Tag
 import org.pillarone.riskanalytics.core.parameter.comment.workflow.IssueStatus
 import org.pillarone.riskanalytics.core.parameterization.ParameterizationHelper
 import org.pillarone.riskanalytics.core.remoting.TransactionInfo
@@ -29,7 +30,8 @@ import static org.pillarone.riskanalytics.core.workflow.Status.*
 class StatusChangeService {
 
     private final Log LOG = LogFactory.getLog(StatusChangeService)
-
+    public  final boolean disableAR238 = Configuration.coreGetAndLogStringConfig("disableAR238", "false")=="true"
+    private final String VERSION = "version"
     private final String atomDealNameRegex = Configuration.coreGetAndLogStringConfig(
             "atomDealNameRegex",
             "^(.+)  \\(([^)]+)\\)"
@@ -213,15 +215,18 @@ class StatusChangeService {
         newItem.dealId = item.dealId
         newItem.valuationDate = source.valuationDate ?: item.valuationDate
 
-        // Avoid duplication of comments eg when the workflow was saved as a sandbox then edited further..
-        //
+//        final Tag versionTag = Tag.findByName(VERSION) // Breaks with @compilestatic
         for (Comment comment in source.comments) {
             if (comment instanceof WorkflowComment) { // note: there are NO workflow comments in Artisan db as of 20160216
                 if ((comment as WorkflowComment).status != IssueStatus.CLOSED) {
                     newItem.addComment(comment.clone())
                 }
             } else {
-                newItem.addComment(comment.clone())
+                // AR-238 Juan: skip version comments when cloning
+                //
+                if( disableAR238 || ! comment.tags?.find { it.toString() == VERSION} ){
+                    newItem.addComment(comment.clone())
+                }
             }
         }
 
