@@ -184,7 +184,8 @@ class ResultConfiguration extends ModellingItem {
     }
 
     public boolean isUsedInSimulation() {
-        return SimulationRun.find("from ${SimulationRun.class.name} as run where run.resultConfiguration.name = ? and run.resultConfiguration.modelClassName = ? and run.resultConfiguration.itemVersion =?", [name, modelClass.name, versionNumber.toString()]) != null
+        return SimulationRun.find("from ${SimulationRun.class.name} as run where run.resultConfiguration.id = ?", [id]) != null
+//      return SimulationRun.find("from ${SimulationRun.class.name} as run where run.resultConfiguration.name = ? and run.resultConfiguration.modelClassName = ? and run.resultConfiguration.itemVersion =?", [name, modelClass.name, versionNumber.toString()]) != null
     }
 
     @CompileStatic
