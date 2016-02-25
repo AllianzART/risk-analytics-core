@@ -1,6 +1,7 @@
 package org.pillarone.riskanalytics.core.simulation.item
 
 import groovy.transform.CompileStatic
+import org.pillarone.riskanalytics.core.ParameterizationDAO
 import org.pillarone.riskanalytics.core.ResourceDAO
 
 class VersionNumber implements Comparable, Cloneable, Serializable {
@@ -54,6 +55,28 @@ class VersionNumber implements Comparable, Cloneable, Serializable {
             new VersionNumber(it.itemVersion)
         }
         return existingVersions
+    }
+
+    // Simplest is to check for the itemVersion starting with R (tighter: check Status?)
+    //
+    static List<VersionNumber> getExistingVersionsSameAuditCategory(Parameterization p14n) {
+
+
+        if( p14n.versionNumber?.workflow ){
+            Collection existingWorkflowVersions = ParameterizationDAO.findAllByNameAndModelClassName(
+                    p14n.name,
+                    p14n.modelClass.name
+            ).findAll {it.itemVersion?.startsWith('R')}
+             .collect { new VersionNumber(it.itemVersion) }
+            return existingWorkflowVersions
+        }else{
+            Collection existingSandboxVersions = ParameterizationDAO.findAllByNameAndModelClassName(
+                    p14n.name,
+                    p14n.modelClass.name
+            ).findAll {!it.itemVersion?.startsWith('R')}
+             .collect { new VersionNumber(it.itemVersion) }
+            return existingSandboxVersions
+        }
     }
 
     static List<VersionNumber> getExistingVersions(Resource item) {
