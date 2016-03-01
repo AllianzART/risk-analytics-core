@@ -369,6 +369,7 @@ class Parameterization extends ParametrizedItem {
         } else {
             //TODO If this is just a verbose way of repeating the prior return, refactor.
             //Otherwise, a short explanation of the 'magic' would be useful for the non-wizards among us..
+            //20160223  Debugger shows returns same object whose id used to lookup
             return daoClass.get(parameterizationDAO.id)
         }
     }
@@ -396,10 +397,11 @@ class Parameterization extends ParametrizedItem {
             return false
         }
     }
-
     @Override
     boolean isUsedInSimulation() {
-        return SimulationRun.find("from ${SimulationRun.class.name} as run where run.parameterization.name = ? and run.parameterization.modelClassName = ? and run.parameterization.itemVersion =?", [name, modelClass.name, versionNumber.toString()]) != null
+        // Why not just use id ? Faster and exact..
+        return SimulationRun.find("from ${SimulationRun.class.name} as run where run.parameterization.id = ?", [id]) != null
+//        return SimulationRun.find("from ${SimulationRun.class.name} as run where run.parameterization.name = ? and run.parameterization.modelClassName = ? and run.parameterization.itemVersion =?", [name, modelClass.name, versionNumber.toString()]) != null
     }
 
     @Override

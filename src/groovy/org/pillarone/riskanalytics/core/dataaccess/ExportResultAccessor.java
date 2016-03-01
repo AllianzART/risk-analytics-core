@@ -54,7 +54,7 @@ public class ExportResultAccessor {
         LOG.info("Lookup "+run.getPeriodCount()+" result periods for: " + args);
 
         for (int periodIdx = 0; periodIdx < run.getPeriodCount(); periodIdx++) {
-            LOG.info("Lookup period "+periodIdx);
+            LOG.debug("Lookup period "+periodIdx);
             File f = new File(GridHelper.getResultPathLocation(runId, pathId, fieldId, collectorId, periodIdx));
 
             /*Initial wildcard-based solution*/
@@ -97,7 +97,7 @@ public class ExportResultAccessor {
                         throw new RiskAnalyticsResultAccessException(w);
                     }
                 } else { // empty list
-                    LOG.info("Non-SINGLE result not found matching '"+runId+"/"+wildcard+"'");
+                    LOG.debug("Non-SINGLE result not found matching '"+runId+"/"+wildcard+"'");
                 }
             }
             /*AR-111 temporary block END*/
@@ -118,7 +118,7 @@ public class ExportResultAccessor {
                 while (ifa.fetchNext()) {
                     int iteration = ifa.getIteration();
                     List<DateTimeValuePair> values = ifa.getSingleValues();  // BUT are they single values if not SINGLE collector ?
-                    LOG.info(String.format(
+                    LOG.debug(String.format(
                             "IFA iteration %d with %d %s values",
                             iteration,
                             values.size(),
