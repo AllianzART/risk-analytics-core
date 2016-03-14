@@ -8,6 +8,8 @@ import org.pillarone.riskanalytics.core.modellingitem.CacheItem
 import org.pillarone.riskanalytics.core.modellingitem.ParameterizationCacheItem
 import org.pillarone.riskanalytics.core.modellingitem.ResourceCacheItem
 import org.pillarone.riskanalytics.core.modellingitem.SimulationCacheItem
+import org.pillarone.riskanalytics.core.remoting.TransactionInfo
+import org.pillarone.riskanalytics.core.remoting.impl.RemotingUtils
 import org.pillarone.riskanalytics.core.util.Configuration
 
 /* frahman 2014-01-02 Extended filtering syntax introduced.
@@ -101,7 +103,19 @@ class AllFieldsFilter implements ISearchFilter {
 
     static final String AND_SEPARATOR = " AND "
     static final String OR_SEPARATOR = " OR "
+    static List<TransactionInfo> transactions = null;
     String query = defaultSearchFilterText
+
+    void setTransactions( List<TransactionInfo> txnList ){
+        transactions = txnList
+    }
+    List<TransactionInfo> getTransactions(){
+        if(transactions){
+            return transactions
+        }
+        return null
+    }
+
 
     List<String[]> matchTerms;
 
@@ -110,6 +124,15 @@ class AllFieldsFilter implements ISearchFilter {
     void setQuery(String q) {
         LOG.debug("*** Splitting up filter : " + q)
         query = q
+        // Do we need to load up list of transaction names ? Only if filter references them..
+        //
+        if( StringUtils.containsIgnoreCase(query,FilterHelp.dealNamePrefix)   ||
+            StringUtils.containsIgnoreCase(query,FilterHelp.dealNamePrefixEq) ||
+            StringUtils.containsIgnoreCase(query,FilterHelp.dealNameShort)    ||
+            StringUtils.containsIgnoreCase(query,FilterHelp.dealNameShortEq)
+        ){
+            setTransactions( RemotingUtils.allTransactions )
+        }
         String[] restrictions = query.split(AND_SEPARATOR)
         LOG.debug("Restrictions (AND clauses): " + restrictions)
         if (matchTerms == null) {
@@ -169,7 +192,7 @@ class AllFieldsFilter implements ISearchFilter {
                 (
                         //Can disable this to check performance impact..
                         //
-                        matchSimulationResultsOnDealId && FilterHelp.matchDealId(sim.parameterization, matchTerms)
+                        matchSimulationResultsOnDealId && FilterHelp.matchDeal(sim.parameterization, matchTerms, transactions)
                 ) ||
                 matchTerms.any {
                     (FilterHelp.isSeedEqualsOp(it)    &&  StringUtils.equals(""+sim.randomSeed, FilterHelp.getText(it))) ||
@@ -197,7 +220,7 @@ class AllFieldsFilter implements ISearchFilter {
     private static boolean internalAccept(ParameterizationCacheItem p14n, String[] matchTerms) {
         return FilterHelp.matchTags(p14n, matchTerms) ||
                 FilterHelp.matchState(p14n, matchTerms) ||
-                FilterHelp.matchDealId(p14n, matchTerms);
+                FilterHelp.matchDeal(p14n, matchTerms, transactions );
     }
 
     private static boolean internalAccept(ResourceCacheItem res, String[] matchTerms) {
@@ -213,12 +236,14 @@ class AllFieldsFilter implements ISearchFilter {
 
         //Search term can begin with a column prefix to restrict its use against a specific 'column'
         static final String dealIdPrefix = "DEALID:"
+        static final String dealNamePrefix = "DEALNAME:"
         static final String namePrefix = "NAME:"
         static final String ownerPrefix = "OWNER:"
         static final String statePrefix = "STATE:"
         static final String tagPrefix = "TAG:"
 
         static final String dealIdPrefixEq = "DEALID="
+        static final String dealNamePrefixEq = "DEALNAME="
         static final String namePrefixEq = "NAME="
         static final String ownerPrefixEq = "OWNER="
         static final String statePrefixEq = "STATE="
@@ -227,12 +252,14 @@ class AllFieldsFilter implements ISearchFilter {
 
         //Shorter versions of the above for more concise filter expressions
         static final String dealIdShort = "D:"
+        static final String dealNameShort = "DN:"
         static final String nameShort = "N:"
         static final String ownerShort = "O:"
         static final String stateShort = "S:"
         static final String tagShort = "T:"
 
         static final String dealIdShortEq = "D="
+        static final String dealNameShortEq = "DN="
         static final String nameShortEq = "N="
         static final String ownerShortEq = "O="
         static final String stateShortEq = "S="
@@ -277,7 +304,9 @@ class AllFieldsFilter implements ISearchFilter {
                 iterationsShort,
                 iterationsPrefix,
                 dbIdPrefixEq,
-                dbIdPrefix
+                dbIdPrefix,
+                dealNamePrefix, dealNameShort,
+                dealNamePrefixEq, dealNameShortEq
         ];
 
         // Search terms without a column prefix apply to all columns
@@ -334,6 +363,10 @@ class AllFieldsFilter implements ISearchFilter {
             isAcceptor( term, [nonePrefix, dealIdShort, dealIdPrefix] )
         }
 
+        private static boolean isDealNameAcceptor(String term) {
+            isAcceptor( term, [nonePrefix, dealNameShort, dealNamePrefix] )
+        }
+
         private static boolean isNameAcceptor(String term) {
             isAcceptor( term, [nonePrefix, nameShort, namePrefix] )
         }
@@ -373,6 +406,10 @@ class AllFieldsFilter implements ISearchFilter {
 
         private static boolean isDealIdEqualsOp(String term) {
             isEqualsOp( term, [dealIdShortEq, dealIdPrefixEq] )
+        }
+
+        private static boolean isDealNameEqualsOp(String term) {
+            isEqualsOp( term, [dealNameShortEq, dealNamePrefixEq] )
         }
 
         private static boolean isNameEqualsOp(String term) {
@@ -433,6 +470,10 @@ class AllFieldsFilter implements ISearchFilter {
             isRejector( term, [dealIdShort, dealIdPrefix] )
         }
 
+        private static boolean isDealNameRejector(String term) {
+            isRejector( term, [dealNameShort, dealNamePrefix] )
+        }
+
         private static boolean isNameRejector(String term) {
             isRejector( term, [nameShort, namePrefix] )
         }
@@ -472,6 +513,10 @@ class AllFieldsFilter implements ISearchFilter {
 
         private static boolean isDealIdNotEqualsOp(String term) {
             isNotEqualsOp( term, [dealIdShortEq, dealIdPrefixEq] )
+        }
+
+        private static boolean isDealNameNotEqualsOp(String term) {
+            isNotEqualsOp( term, [dealNameShortEq, dealNamePrefixEq] )
         }
 
         private static boolean isNameNotEqualsOp(String term) {
@@ -555,16 +600,63 @@ class AllFieldsFilter implements ISearchFilter {
 
         // TODO - allow matching on deal name OR id in this method; rename to matchOnDeal ?
         //
-        private static boolean matchDealId(ParameterizationCacheItem p14n, String[] matchTerms) {
+        private static boolean matchDeal(ParameterizationCacheItem p14n, String[] matchTerms, List<TransactionInfo> txInfos ) {
+
+//            for(String it : matchTerms){
+//                if(
+//                    isDealIdAcceptor(it)    ?  containsAnyCsvElement(p14n?.dealId?.toString(), getText(it), p14n) //allow listing many
+//                    : isDealIdEqualsOp(it)    ?  equalsAnyCsvElement(p14n?.dealId?.toString(), getText(it), p14n)   //allow listing many
+//                    : isDealIdRejector(it)    ? !StringUtils.containsIgnoreCase(p14n?.dealId?.toString(), getText(it))
+//                    : isDealIdNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(p14n?.dealId?.toString(), getText(it))
+//                    : isDealNameAcceptor(it)    ?  StringUtils.containsIgnoreCase(getDealStatus(p14n,txInfos), getText(it))
+//                    : isDealNameEqualsOp(it)    ?  StringUtils.equalsIgnoreCase(getDealStatus(p14n,txInfos), getText(it))
+//                    : isDealNameRejector(it)    ? !StringUtils.containsIgnoreCase(getDealStatus(p14n,txInfos), getText(it))
+//                    : isDealNameNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(getDealStatus(p14n,txInfos), getText(it))
+//                    : false
+//                ){
+//                    return true
+//                }
+//
+//                return false
+//
+//            }
+
             return matchTerms.any {
                   isDealIdAcceptor(it)    ?  containsAnyCsvElement(p14n?.dealId?.toString(), getText(it), p14n) //allow listing many
                 : isDealIdEqualsOp(it)    ?  equalsAnyCsvElement(p14n?.dealId?.toString(), getText(it), p14n)   //allow listing many
                 : isDealIdRejector(it)    ? !StringUtils.containsIgnoreCase(p14n?.dealId?.toString(), getText(it))
                 : isDealIdNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(p14n?.dealId?.toString(), getText(it))
+                : isDealNameAcceptor(it)    ?  StringUtils.containsIgnoreCase(getDealStatus(p14n,txInfos), getText(it))
+                : isDealNameEqualsOp(it)    ?  StringUtils.equalsIgnoreCase(getDealStatus(p14n,txInfos), getText(it))
+                : isDealNameRejector(it)    ? !StringUtils.containsIgnoreCase(getDealStatus(p14n,txInfos), getText(it))
+                : isDealNameNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(getDealStatus(p14n,txInfos), getText(it))
                 : false
             };
         }
 
+        private static String getDealStatus(ParameterizationCacheItem p14n, List<TransactionInfo> transactions){
+            if(!transactions|| transactions.isEmpty()){
+                String w ="No transaction info available when asked for deal status on $p14n.nameAndVersion"
+                LOG.warn(w)
+                throw new IllegalStateException(w)
+            }
+
+            if(!p14n?.dealId || p14n.dealId < 0){
+                LOG.debug("${p14n.nameAndVersion} - not connected to a txn")
+                return ""
+            }
+
+            String name = "";
+            TransactionInfo transactionInfo = transactions.find {it.dealId == p14n.dealId}
+            if(transactionInfo){
+                name = transactionInfo.name
+                LOG.debug("${p14n.nameAndVersion} - connected to txn '${name}'")
+            }else{
+                LOG.warn("${p14n.nameAndVersion} - has unknown deal id '${p14n.dealId}'")
+            }
+
+            return name;
+        }
         // Only call this for things that have tags (Simulation, Parameterization or Resource)
         private static boolean matchTags(def item, String[] matchTerms) {
             return matchTerms.any { def it ->
