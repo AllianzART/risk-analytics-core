@@ -123,16 +123,25 @@ class AllFieldsFilter implements ISearchFilter {
     //
     void setQuery(String q) {
         LOG.debug("*** Splitting up filter : " + q)
-        query = q
         // Do we need to load up list of transaction names ? Only if filter references them..
         //
-        if( StringUtils.containsIgnoreCase(query,FilterHelp.dealNamePrefix)   ||
-            StringUtils.containsIgnoreCase(query,FilterHelp.dealNamePrefixEq) ||
-            StringUtils.containsIgnoreCase(query,FilterHelp.dealNameShort)    ||
-            StringUtils.containsIgnoreCase(query,FilterHelp.dealNameShortEq)
+        if( StringUtils.containsIgnoreCase(q,FilterHelp.dealNamePrefix)   ||
+            StringUtils.containsIgnoreCase(q,FilterHelp.dealNamePrefixEq) ||
+            StringUtils.containsIgnoreCase(q,FilterHelp.dealNameShort)    ||
+            StringUtils.containsIgnoreCase(q,FilterHelp.dealNameShortEq)
         ){
-            setTransactions( RemotingUtils.allTransactions )
+            List<TransactionInfo> txnList = RemotingUtils.allTransactions
+
+            if(!txnList || txnList.isEmpty() || txnList.first().name.contains('Connection failed')){
+                // Throwing here brings the gui down - catch it in app and leave an error in search filter
+                //
+                throw new IllegalStateException("Cannot filter on deal names - Transaction Service down")
+            }
+            setTransactions( txnList )
         }
+
+        query = q
+
         String[] restrictions = query.split(AND_SEPARATOR)
         LOG.debug("Restrictions (AND clauses): " + restrictions)
         if (matchTerms == null) {
