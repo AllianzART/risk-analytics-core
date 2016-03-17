@@ -358,6 +358,12 @@ class AllFieldsFilter implements ISearchFilter {
             return nonePrefix == getColumnFilterPrefix(term);
         }
 
+        // For use in showing tips in search field
+        //
+        public static String[] getAllColumnFilterPrefixes(){
+            columnFilterPrefixes
+        }
+
         //Check if one of the legal values forms prefix.
         //(Copes with extra spaces after ! or before :)
         private static String getColumnFilterPrefix(String term) {
@@ -412,7 +418,10 @@ class AllFieldsFilter implements ISearchFilter {
         }
 
         private static boolean isDealTagAcceptor(String term) {
-            isAcceptor( term, [nonePrefix, dealTagShort, dealTagPrefix] )
+            // don't include nonePrefix here
+            // else serach terms not prefixed with 'dealtag' / 'dt' will trigger deal tag search
+            //
+            isAcceptor( term, [dealTagShort, dealTagPrefix] )
         }
 
         private static boolean isNameAcceptor(String term) {
