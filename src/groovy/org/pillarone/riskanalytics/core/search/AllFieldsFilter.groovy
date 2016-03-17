@@ -104,17 +104,28 @@ class AllFieldsFilter implements ISearchFilter {
 
     static final String AND_SEPARATOR = " AND "
     static final String OR_SEPARATOR = " OR "
-    static List<TransactionInfo> transactions = null;
+    static Map<Long,String> dealIdToNameMap = null;
     String query = defaultSearchFilterText
 
-    void setTransactions( List<TransactionInfo> txnList ){
-        transactions = txnList
-    }
-    List<TransactionInfo> getTransactions(){
-        if(transactions){
-            return transactions
+    // Convert the list into a map once then every item match can be performed quicker
+    //
+    static void setTransactions( List<TransactionInfo> txnList ){
+
+        if(!dealIdToNameMap){
+            dealIdToNameMap = new HashMap<Long,String>(1024)
         }
-        return null
+        dealIdToNameMap.clear()
+        for(TransactionInfo transactionInfo : txnList){
+            if(0 < transactionInfo?.dealId){
+                dealIdToNameMap[transactionInfo.dealId] = transactionInfo.name
+            }
+        }
+    }
+    static Map<Long,String> getTransactions(){
+        if(!dealIdToNameMap){
+            dealIdToNameMap = new HashMap<Long,String>(100)
+        }
+        return dealIdToNameMap
     }
 
 
@@ -134,7 +145,7 @@ class AllFieldsFilter implements ISearchFilter {
             List<TransactionInfo> txnList = RemotingUtils.allTransactions
 
             if(!txnList || txnList.isEmpty() || txnList.first().name.contains('Connection failed')){
-                // Throwing here brings the gui down - catch it in app and leave an error in search filter
+                // Throwing here brought the gui down - we catch it in app and leave an error in search filter
                 //
                 throw new IllegalStateException("Cannot filter on deal names - Transaction Service down")
             }
@@ -202,7 +213,7 @@ class AllFieldsFilter implements ISearchFilter {
                 (
                         //Can disable this to check performance impact..
                         //
-                        matchSimulationResultsOnDealId && FilterHelp.matchDeal(sim.parameterization, matchTerms, transactions)
+                        matchSimulationResultsOnDealId && FilterHelp.matchDeal(sim.parameterization, matchTerms, getTransactions())
                 ) ||
                 matchTerms.any {
                     (FilterHelp.isSeedEqualsOp(it)    &&  StringUtils.equals(""+sim.randomSeed, FilterHelp.getText(it))) ||
@@ -647,17 +658,17 @@ class AllFieldsFilter implements ISearchFilter {
             };
         }
 
-        private static boolean matchDeal(ParameterizationCacheItem p14n, String[] matchTerms, List<TransactionInfo> txInfos ) {
+        private static boolean matchDeal(ParameterizationCacheItem p14n, String[] matchTerms, Map<Long,String> txInfos ) {
 
             return matchTerms.any {
                   isDealIdAcceptor(it)    ?  containsAnyCsvElement(p14n?.dealId?.toString(), getText(it), p14n) //allow listing many
                 : isDealIdEqualsOp(it)    ?  equalsAnyCsvElement(p14n?.dealId?.toString(), getText(it), p14n)   //allow listing many
                 : isDealIdRejector(it)    ? !StringUtils.containsIgnoreCase(p14n?.dealId?.toString(), getText(it))
                 : isDealIdNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(p14n?.dealId?.toString(), getText(it))
-                : isDealNameAcceptor(it)    ?  StringUtils.containsIgnoreCase(getDealStatus(p14n,txInfos), getText(it))
-                : isDealNameEqualsOp(it)    ?  StringUtils.equalsIgnoreCase(getDealStatus(p14n,txInfos), getText(it))
-                : isDealNameRejector(it)    ? !StringUtils.containsIgnoreCase(getDealStatus(p14n,txInfos), getText(it))
-                : isDealNameNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(getDealStatus(p14n,txInfos), getText(it))
+                : isDealNameAcceptor(it)    ?  StringUtils.containsIgnoreCase(getDealName(p14n,txInfos), getText(it))
+                : isDealNameEqualsOp(it)    ?  StringUtils.equalsIgnoreCase(getDealName(p14n,txInfos), getText(it))
+                : isDealNameRejector(it)    ? !StringUtils.containsIgnoreCase(getDealName(p14n,txInfos), getText(it))
+                : isDealNameNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(getDealName(p14n,txInfos), getText(it))
                 : false
             };
         }
@@ -706,24 +717,20 @@ class AllFieldsFilter implements ISearchFilter {
             return dealContainsLikeTag( item, it, true);
         }
 
-        private static String getDealStatus(ParameterizationCacheItem p14n, List<TransactionInfo> transactions){
+        private static String getDealName(ParameterizationCacheItem p14n, Map<Long,String> transactions){
+            if(!p14n?.dealId || p14n.dealId < 0){
+//                LOG.debug("${p14n.nameAndVersion} - not connected to a txn")
+                return ""
+            }
+
             if(!transactions|| transactions.isEmpty()){
-                String w ="No transaction info available when asked for deal status on $p14n.nameAndVersion"
+                String w ="No transaction info - looking up deal name on '${p14n.nameAndVersion}'"
                 LOG.warn(w)
                 throw new IllegalStateException(w)
             }
 
-            if(!p14n?.dealId || p14n.dealId < 0){
-                LOG.debug("${p14n.nameAndVersion} - not connected to a txn")
-                return ""
-            }
-
-            String name = "";
-            TransactionInfo transactionInfo = transactions.find {it.dealId == p14n.dealId}
-            if(transactionInfo){
-                name = transactionInfo.name
-                LOG.debug("${p14n.nameAndVersion} - connected to txn '${name}'")
-            }else{
+            String name = transactions.get(p14n.dealId, "")
+            if(!transactions.containsKey(p14n.dealId)){
                 LOG.warn("${p14n.nameAndVersion} - has unknown deal id '${p14n.dealId}'")
             }
 
