@@ -3,11 +3,14 @@ package org.pillarone.riskanalytics.core.search
 import org.apache.commons.lang.StringUtils
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
+import org.pillarone.riskanalytics.core.ParameterizationDAO
 import org.pillarone.riskanalytics.core.modellingitem.BatchCacheItem
 import org.pillarone.riskanalytics.core.modellingitem.CacheItem
 import org.pillarone.riskanalytics.core.modellingitem.ParameterizationCacheItem
 import org.pillarone.riskanalytics.core.modellingitem.ResourceCacheItem
 import org.pillarone.riskanalytics.core.modellingitem.SimulationCacheItem
+import org.pillarone.riskanalytics.core.remoting.TransactionInfo
+import org.pillarone.riskanalytics.core.remoting.impl.RemotingUtils
 import org.pillarone.riskanalytics.core.util.Configuration
 
 /* frahman 2014-01-02 Extended filtering syntax introduced.
@@ -101,7 +104,30 @@ class AllFieldsFilter implements ISearchFilter {
 
     static final String AND_SEPARATOR = " AND "
     static final String OR_SEPARATOR = " OR "
+    static Map<Long,String> dealIdToNameMap = null;
     String query = defaultSearchFilterText
+
+    // Convert the list into a map once then every item match can be performed quicker
+    //
+    static void setTransactions( List<TransactionInfo> txnList ){
+
+        if(!dealIdToNameMap){
+            dealIdToNameMap = new HashMap<Long,String>(1024)
+        }
+        dealIdToNameMap.clear()
+        for(TransactionInfo transactionInfo : txnList){
+            if(0 < transactionInfo?.dealId){
+                dealIdToNameMap[transactionInfo.dealId] = transactionInfo.name
+            }
+        }
+    }
+    static Map<Long,String> getTransactions(){
+        if(!dealIdToNameMap){
+            dealIdToNameMap = new HashMap<Long,String>(100)
+        }
+        return dealIdToNameMap
+    }
+
 
     List<String[]> matchTerms;
 
@@ -109,7 +135,25 @@ class AllFieldsFilter implements ISearchFilter {
     //
     void setQuery(String q) {
         LOG.debug("*** Splitting up filter : " + q)
+        // Do we need to load up list of transaction names ? Only if filter references them..
+        //
+        if( StringUtils.containsIgnoreCase(q,FilterHelp.dealNamePrefix)   ||
+            StringUtils.containsIgnoreCase(q,FilterHelp.dealNamePrefixEq) ||
+            StringUtils.containsIgnoreCase(q,FilterHelp.dealNameShort)    ||
+            StringUtils.containsIgnoreCase(q,FilterHelp.dealNameShortEq)
+        ){
+            List<TransactionInfo> txnList = RemotingUtils.allTransactions
+
+            if(!txnList || txnList.isEmpty() || txnList.first().name.contains('Connection failed')){
+                // Throwing here brought the gui down - we catch it in app and leave an error in search filter
+                //
+                throw new IllegalStateException("Cannot filter on deal names - Transaction Service down")
+            }
+            setTransactions( txnList )
+        }
+
         query = q
+
         String[] restrictions = query.split(AND_SEPARATOR)
         LOG.debug("Restrictions (AND clauses): " + restrictions)
         if (matchTerms == null) {
@@ -169,7 +213,7 @@ class AllFieldsFilter implements ISearchFilter {
                 (
                         //Can disable this to check performance impact..
                         //
-                        matchSimulationResultsOnDealId && FilterHelp.matchDealId(sim.parameterization, matchTerms)
+                        matchSimulationResultsOnDealId && FilterHelp.matchDeal(sim.parameterization, matchTerms, getTransactions())
                 ) ||
                 matchTerms.any {
                     (FilterHelp.isSeedEqualsOp(it)    &&  StringUtils.equals(""+sim.randomSeed, FilterHelp.getText(it))) ||
@@ -182,7 +226,12 @@ class AllFieldsFilter implements ISearchFilter {
                     (FilterHelp.isIterationsNotEqualsOp(it) && !StringUtils.equals(""+sim.numberOfIterations, FilterHelp.getText(it))) ||
                     (FilterHelp.isIterationsAcceptor(it)    &&  StringUtils.contains(""+sim.numberOfIterations, FilterHelp.getText(it))) ||
                     (FilterHelp.isIterationsRejector(it)    && !StringUtils.contains(""+sim.numberOfIterations, FilterHelp.getText(it)))
-                }
+                } ||
+                (
+                    //Can disable this to check performance impact..
+                    //
+                    matchSimulationResultsOnDealId && FilterHelp.matchDealTags(sim.parameterization, matchTerms)
+                )
     }
 
     // This override renders Batches immune to filtering (so they always appear).
@@ -192,12 +241,12 @@ class AllFieldsFilter implements ISearchFilter {
         return !filterBatchesInGUI;
     }
 
-    //matchTerms.any { isStateAcceptor(it) && StringUtils.containsIgnoreCase(p14n.status?.toString(), getText(it)) } ||
-    //matchTerms.any { isDealIdAcceptor(it)&& StringUtils.equalsIgnoreCase(p14n.dealId?.toString(),   getText(it)) }
     private static boolean internalAccept(ParameterizationCacheItem p14n, String[] matchTerms) {
         return FilterHelp.matchTags(p14n, matchTerms) ||
                 FilterHelp.matchState(p14n, matchTerms) ||
-                FilterHelp.matchDealId(p14n, matchTerms);
+                FilterHelp.matchDeal(p14n, matchTerms, transactions ) ||
+                FilterHelp.matchDealTags(p14n, matchTerms )
+        ;
     }
 
     private static boolean internalAccept(ResourceCacheItem res, String[] matchTerms) {
@@ -213,12 +262,16 @@ class AllFieldsFilter implements ISearchFilter {
 
         //Search term can begin with a column prefix to restrict its use against a specific 'column'
         static final String dealIdPrefix = "DEALID:"
+        static final String dealNamePrefix = "DEALNAME:"
+        static final String dealTagPrefix = "DEALTAG:"
         static final String namePrefix = "NAME:"
         static final String ownerPrefix = "OWNER:"
         static final String statePrefix = "STATE:"
         static final String tagPrefix = "TAG:"
 
         static final String dealIdPrefixEq = "DEALID="
+        static final String dealNamePrefixEq = "DEALNAME="
+        static final String dealTagPrefixEq = "DEALTAG="
         static final String namePrefixEq = "NAME="
         static final String ownerPrefixEq = "OWNER="
         static final String statePrefixEq = "STATE="
@@ -227,12 +280,16 @@ class AllFieldsFilter implements ISearchFilter {
 
         //Shorter versions of the above for more concise filter expressions
         static final String dealIdShort = "D:"
+        static final String dealNameShort = "DN:"
+        static final String dealTagShort = "DT:"
         static final String nameShort = "N:"
         static final String ownerShort = "O:"
         static final String stateShort = "S:"
         static final String tagShort = "T:"
 
         static final String dealIdShortEq = "D="
+        static final String dealNameShortEq = "DN="
+        static final String dealTagShortEq = "DT="
         static final String nameShortEq = "N="
         static final String ownerShortEq = "O="
         static final String stateShortEq = "S="
@@ -277,12 +334,34 @@ class AllFieldsFilter implements ISearchFilter {
                 iterationsShort,
                 iterationsPrefix,
                 dbIdPrefixEq,
-                dbIdPrefix
+                dbIdPrefix,
+                dealNamePrefix, dealNameShort,
+                dealNamePrefixEq, dealNameShortEq,
+                dealTagPrefix, dealTagShort,
+                dealTagPrefixEq, dealTagShortEq,
+
         ];
+
+        // Gets list of distinct tags on all p14ns in given deal
+        // (http://docs.jboss.org/hibernate/core/3.6/reference/en-US/html/queryhql.html)
+        //
+        final static String dealTagQuery =
+            "select distinct pt.tag.name as tagName " +
+                    "from ParameterizationDAO as pd " +
+                    "left outer join pd.tags as pt " +
+                    "where pd.dealId = :dealId " +
+                    "and pt.tag.name <> 'LOCKED' "
+
 
         // Search terms without a column prefix apply to all columns
         private static boolean isGeneralSearchTerm(String term) {
             return nonePrefix == getColumnFilterPrefix(term);
+        }
+
+        // For use in showing tips in search field
+        //
+        public static String[] getAllColumnFilterPrefixes(){
+            columnFilterPrefixes
         }
 
         //Check if one of the legal values forms prefix.
@@ -334,6 +413,17 @@ class AllFieldsFilter implements ISearchFilter {
             isAcceptor( term, [nonePrefix, dealIdShort, dealIdPrefix] )
         }
 
+        private static boolean isDealNameAcceptor(String term) {
+            isAcceptor( term, [nonePrefix, dealNameShort, dealNamePrefix] )
+        }
+
+        private static boolean isDealTagAcceptor(String term) {
+            // don't include nonePrefix here
+            // else serach terms not prefixed with 'dealtag' / 'dt' will trigger deal tag search
+            //
+            isAcceptor( term, [dealTagShort, dealTagPrefix] )
+        }
+
         private static boolean isNameAcceptor(String term) {
             isAcceptor( term, [nonePrefix, nameShort, namePrefix] )
         }
@@ -373,6 +463,14 @@ class AllFieldsFilter implements ISearchFilter {
 
         private static boolean isDealIdEqualsOp(String term) {
             isEqualsOp( term, [dealIdShortEq, dealIdPrefixEq] )
+        }
+
+        private static boolean isDealNameEqualsOp(String term) {
+            isEqualsOp( term, [dealNameShortEq, dealNamePrefixEq] )
+        }
+
+        private static boolean isDealTagEqualsOp(String term) {
+            isEqualsOp( term, [dealTagShortEq, dealTagPrefixEq] )
         }
 
         private static boolean isNameEqualsOp(String term) {
@@ -433,6 +531,14 @@ class AllFieldsFilter implements ISearchFilter {
             isRejector( term, [dealIdShort, dealIdPrefix] )
         }
 
+        private static boolean isDealNameRejector(String term) {
+            isRejector( term, [dealNameShort, dealNamePrefix] )
+        }
+
+        private static boolean isDealTagRejector(String term) {
+            isRejector( term, [dealTagShort, dealTagPrefix] )
+        }
+
         private static boolean isNameRejector(String term) {
             isRejector( term, [nameShort, namePrefix] )
         }
@@ -472,6 +578,14 @@ class AllFieldsFilter implements ISearchFilter {
 
         private static boolean isDealIdNotEqualsOp(String term) {
             isNotEqualsOp( term, [dealIdShortEq, dealIdPrefixEq] )
+        }
+
+        private static boolean isDealNameNotEqualsOp(String term) {
+            isNotEqualsOp( term, [dealNameShortEq, dealNamePrefixEq] )
+        }
+
+        private static boolean isDealTagNotEqualsOp(String term) {
+            isNotEqualsOp( term, [dealTagShortEq, dealTagPrefixEq] )
         }
 
         private static boolean isNameNotEqualsOp(String term) {
@@ -553,18 +667,84 @@ class AllFieldsFilter implements ISearchFilter {
             };
         }
 
-        // TODO - allow matching on deal name OR id in this method; rename to matchOnDeal ?
-        //
-        private static boolean matchDealId(ParameterizationCacheItem p14n, String[] matchTerms) {
+        private static boolean matchDeal(ParameterizationCacheItem p14n, String[] matchTerms, Map<Long,String> txInfos ) {
+
             return matchTerms.any {
                   isDealIdAcceptor(it)    ?  containsAnyCsvElement(p14n?.dealId?.toString(), getText(it), p14n) //allow listing many
                 : isDealIdEqualsOp(it)    ?  equalsAnyCsvElement(p14n?.dealId?.toString(), getText(it), p14n)   //allow listing many
                 : isDealIdRejector(it)    ? !StringUtils.containsIgnoreCase(p14n?.dealId?.toString(), getText(it))
                 : isDealIdNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(p14n?.dealId?.toString(), getText(it))
+                : isDealNameAcceptor(it)    ?  StringUtils.containsIgnoreCase(getDealName(p14n,txInfos), getText(it))
+                : isDealNameEqualsOp(it)    ?  StringUtils.equalsIgnoreCase(getDealName(p14n,txInfos), getText(it))
+                : isDealNameRejector(it)    ? !StringUtils.containsIgnoreCase(getDealName(p14n,txInfos), getText(it))
+                : isDealNameNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(getDealName(p14n,txInfos), getText(it))
                 : false
             };
         }
 
+        // ROFO scenarios, want to be able to exclude items connected to a deal that has *any* item with new qtr tag..
+        //
+        // To avoid crippling performance (should really test this) I avoid db checks on items that have
+        // no real deal set (ie ignoring sandbox and AZRe items)..
+        //
+        private static boolean matchDealTags(ParameterizationCacheItem item, String[] matchTerms) {
+
+            return (0 < item?.dealId )  &&  matchTerms.any {
+                      isDealTagAcceptor(it)    ?  dealContainsLikeTag( item, it)
+                    : isDealTagEqualsOp(it)    ?  dealContainsExactTag(item, it)
+                    : isDealTagRejector(it)    ? !dealContainsLikeTag( item, it)
+                    : isDealTagNotEqualsOp(it) ? !dealContainsExactTag(item, it)
+                    : false
+                };
+        }
+
+        //e.g. 'dt:Q4 2013' to match a pn if any pn with same deal has tag with 'Q4 2013' in the name
+        //
+        private static boolean dealContainsLikeTag(ParameterizationCacheItem item, String term, boolean equalsOp = false){
+
+            // skip DB query if item itself satisfies dealtag check
+            //
+            if(equalsOp){
+                if( item.tags*.name.any { StringUtils.equalsIgnoreCase(it, getText(term))} ){
+                    return true
+                }
+            }else{
+                if( item.tags*.name.any { StringUtils.containsIgnoreCase(it, getText(term))} ){
+                    return true
+                }
+            }
+
+            // Slower: do *any* models on same deal satisfy query ? Get ArrayList of tags on any p14ns in deal
+            //
+            List results = ParameterizationDAO.executeQuery(dealTagQuery, ["dealId": item.dealId], [readOnly: true])
+
+            //LOG.debug("${results.size()} distinct tags on deal ${item.dealId}-related models eg (${item.name})")
+            return equalsOp ? results.any { String tag -> StringUtils.equalsIgnoreCase(  tag, getText(term))} :
+                              results.any { String tag -> StringUtils.containsIgnoreCase(tag, getText(term)) };
+        }
+        private static boolean dealContainsExactTag(ParameterizationCacheItem item, String it){
+            return dealContainsLikeTag( item, it, true);
+        }
+
+        private static String getDealName(ParameterizationCacheItem p14n, Map<Long,String> transactions){
+            if(!p14n?.dealId || p14n.dealId < 0){
+//                LOG.debug("${p14n.nameAndVersion} - not connected to a txn")
+                return ""
+            }
+
+            if(!transactions|| transactions.isEmpty()){
+                String w ="No transaction info - looking up deal name on '${p14n.nameAndVersion}'"
+                LOG.warn(w)
+                throw new IllegalStateException(w)
+            }
+
+            String name = transactions.get(p14n.dealId, "")
+            if(!transactions.containsKey(p14n.dealId)){
+                LOG.warn("${p14n.nameAndVersion} - has unknown deal id '${p14n.dealId}'")
+            }
+
+            return name;
+        }
         // Only call this for things that have tags (Simulation, Parameterization or Resource)
         private static boolean matchTags(def item, String[] matchTerms) {
             return matchTerms.any { def it ->

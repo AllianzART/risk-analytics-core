@@ -11,12 +11,19 @@ class RemotingUtils {
     private static Log LOG = LogFactory.getLog(RemotingUtils)
 
     public static ITransactionService getTransactionService() {
+        long tt = System.currentTimeMillis()
         ITransactionService transactionService = (ITransactionService) Holders.grailsApplication.mainContext.getBean("transactionService")
+        tt = System.currentTimeMillis() - tt
+        LOG.info("Timed " + tt + " ms: getBean(transactionService)");
         try {
-            transactionService.getAllTransactions()
+            tt = System.currentTimeMillis()
+            List<TransactionInfo> txnList = transactionService.getAllTransactions()
+            tt = System.currentTimeMillis() - tt
+            LOG.info("Timed " + tt + " ms: getAllTransactions()");
             return transactionService
         } catch (Throwable t) {
-            LOG.error "Error obtaining remote service: ${t.message}"
+            tt = System.currentTimeMillis() - tt
+            LOG.error "Timed $tt ms: Error obtaining remote service: ${t.message}"
             return [
                     getAllTransactions: {
                         return [new TransactionInfo(1, "Connection failed - contact support.", "")]
