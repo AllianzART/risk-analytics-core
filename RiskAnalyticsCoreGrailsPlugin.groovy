@@ -23,7 +23,7 @@ import org.springframework.transaction.interceptor.TransactionProxyFactoryBean
 
 class RiskAnalyticsCoreGrailsPlugin {
     // the plugin version
-    def version = "2.0.4"
+    def version = "2.0.5"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "2.3.2 > *"
     // the other plugins this plugin depends on
