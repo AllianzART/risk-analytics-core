@@ -345,13 +345,14 @@ class AllFieldsFilter implements ISearchFilter {
         // Gets list of distinct tags on all p14ns in given deal
         // (http://docs.jboss.org/hibernate/core/3.6/reference/en-US/html/queryhql.html)
         //
-        final static String dealTagQuery =
-            "select distinct pt.tag.name as tagName " +
+        static final String dealTagQuery = "select distinct pt.tag.name as tagName " +
                     "from ParameterizationDAO as pd " +
                     "left outer join pd.tags as pt " +
                     "where pd.dealId = :dealId " +
                     "and pt.tag.name <> 'LOCKED' "
 
+        private static String previousTerm = null
+        private static String previousPrefix = nonePrefix
 
         // Search terms without a column prefix apply to all columns
         private static boolean isGeneralSearchTerm(String term) {
@@ -364,9 +365,16 @@ class AllFieldsFilter implements ISearchFilter {
             columnFilterPrefixes
         }
 
-        //Check if one of the legal values forms prefix.
-        //(Copes with extra spaces after ! or before :)
+        // Check if legal prefix present (copes with extra spaces after ! or before :)
+        // AR-271 cache prefix till new match term given (better: store prefix in match term object)
+        //
         private static String getColumnFilterPrefix(String term) {
+            if( StringUtils.equalsIgnoreCase(term, previousTerm ) ){
+                return previousPrefix
+            }
+            previousTerm = term
+            previousPrefix = nonePrefix
+
             int colonIndex = term.indexOf(COLON);
             int equalsIndex = term.indexOf(EQUALS);
             if (colonIndex == -1 && equalsIndex == -1) { // not a column-specific term
@@ -389,14 +397,13 @@ class AllFieldsFilter implements ISearchFilter {
             String prefix = (colonIndex  != -1) ? term.substring(bangIndex + 1, colonIndex).trim()  + COLON
                                                 : term.substring(bangIndex + 1, equalsIndex).trim() + EQUALS
 
-            if(prefix.empty) return nonePrefix // slightly faster in most frequent case where no prefix used
-
             String found = columnFilterPrefixes.find { prefix.equalsIgnoreCase(it) };
 
             if( !found ){
                 LOG.debug("getColumnFilterPrefix(term: ${term})-> ignoring unknown prefix: ${prefix}")
                 return nonePrefix;
             }
+            previousPrefix = found
             return found;
         }
 
