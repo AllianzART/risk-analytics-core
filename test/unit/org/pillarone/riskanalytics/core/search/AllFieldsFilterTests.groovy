@@ -12,7 +12,7 @@ import org.pillarone.riskanalytics.core.workflow.Status
 
 class AllFieldsFilterTests extends GroovyTestCase {
 
-    AllFieldsFilter filterUnderTest = new AllFieldsFilter();
+    AllFieldsFilter filter = new AllFieldsFilter();
 
     // Neat approach to more succinct test code from http://stackoverflow.com/a/18002336
     // Just call with map of specific fields you need to override from defaults
@@ -159,12 +159,12 @@ class AllFieldsFilterTests extends GroovyTestCase {
         ResultConfigurationCacheItem config = createResConfigCacheItem ([ id:123, name:'itemName',  ])
 
         [p14n,sim,resource,config].each{
-            assert  query(filterUnderTest, 'dbid:12').accept(it)                   // match partial
-            assert !query(filterUnderTest, 'dbid=12').accept(it)                   // wrong exact id
-            assert  query(filterUnderTest, 'dbid:13,12,44').accept(it)             // match partial, csv list
-            assert  query(filterUnderTest, 'dbid=123,122,144').accept(it)          // match partial, csv list
-            assert  query(filterUnderTest, 'dbid=122,144,123,').accept(it)         // match partial, csv list
-            assert !query(filterUnderTest, 'dbid=3123,122,144').accept(it)         // missing exact match, csv list
+            assert  query(filter, 'dbid:12').accept(it)                   // match partial
+            assert !query(filter, 'dbid=12').accept(it)                   // wrong exact id
+            assert  query(filter, 'dbid:13,12,44').accept(it)             // match partial, csv list
+            assert  query(filter, 'dbid=123,122,144').accept(it)          // match partial, csv list
+            assert  query(filter, 'dbid=122,144,123,').accept(it)         // match partial, csv list
+            assert !query(filter, 'dbid=3123,122,144').accept(it)         // missing exact match, csv list
         }
     }
 
@@ -176,14 +176,14 @@ class AllFieldsFilterTests extends GroovyTestCase {
         ResultConfigurationCacheItem config = createResConfigCacheItem ([ name:'itemName', creator:new Person(username: 'creatorName') ])
 
         [p14n,sim,resource,config].each{
-            assert query(filterUnderTest, 'cre').accept(it)                       // match partial owner
-            assert query(filterUnderTest, 'owner:cre').accept(it)                 // match partial owner
-            assert query(filterUnderTest, 'creatorName').accept(it)               // match owner
-            assert query(filterUnderTest, 'o:creatorName').accept(it)             // match owner
+            assert query(filter, 'cre').accept(it)                       // match partial owner
+            assert query(filter, 'owner:cre').accept(it)                 // match partial owner
+            assert query(filter, 'creatorName').accept(it)               // match owner
+            assert query(filter, 'o:creatorName').accept(it)             // match owner
 
             // Must not find 'user' in name of item, nor 'testName' in username
-            assert !query(filterUnderTest, 'name:creatorName').accept(it)         // wrong item name
-            assert !query(filterUnderTest, 'owner:itemName').accept(it)           // wrong owner name
+            assert !query(filter, 'name:creatorName').accept(it)         // wrong item name
+            assert !query(filter, 'owner:itemName').accept(it)           // wrong owner name
         }
     }
 
@@ -204,11 +204,11 @@ class AllFieldsFilterTests extends GroovyTestCase {
         ])
 
         [p14n,sim,resource].each{
-            assert  query(filterUnderTest, 'first').accept(it)                   //match first tag
-            assert  query(filterUnderTest, 'tag:first').accept(it)               //ditto
-            assert  query(filterUnderTest, 'tag:nemo OR name:emna').accept(it)   //match partial itemname
-            assert !query(filterUnderTest, 'tag:item AND name:seco').accept(it)  //fail match on tag / item
-            assert  query(filterUnderTest, 'item AND seco').accept(it)           //match partial item name
+            assert  query(filter, 'first').accept(it)                   //match first tag
+            assert  query(filter, 'tag:first').accept(it)               //ditto
+            assert  query(filter, 'tag:nemo OR name:emna').accept(it)   //match partial itemname
+            assert !query(filter, 'tag:item AND name:seco').accept(it)  //fail match on tag / item
+            assert  query(filter, 'item AND seco').accept(it)           //match partial item name
 
             //SOMEHOW BROKEN
 //            assert  query(filterUnderTest, 'itemName v2').accept(it)            //match full nameAndVersion
@@ -218,18 +218,23 @@ class AllFieldsFilterTests extends GroovyTestCase {
     // Added exact match tests for name/tag
     //
     void testSearchParameterizations() {
-        ParameterizationCacheItem p14n = createP14nCacheItem([name:'testName'])
+        ParameterizationCacheItem p14n = createP14nCacheItem([name:'testName',versionNumber:new VersionNumber('3')])
+
         verifyOnlyNameSensitiveFiltersMatch('test', p14n)
-        assert !query(filterUnderTest, 'not found').accept(p14n)
+        assert ! query(filter, 'not found').accept(p14n)
+        assert   query(filter, 'n=testName').accept(p14n)          //correct full name
+        assert ! query(filter, 'n=testName v3').accept(p14n)       //incorrect full name
+        assert   query(filter, 'n:testName v3').accept(p14n)       //nameAndVersion contains..
+        assert   query(filter, 'n:testName v').accept(p14n)        //nameAndVersion contains..
 
         ParameterizationCacheItem statusP14n = createP14nCacheItem([
                 name:'reviewing',status: Status.IN_REVIEW
         ])
-        assert  query(filterUnderTest, 'review').accept(statusP14n)              //match either status or name
-        assert !query(filterUnderTest, 's:viewing').accept(statusP14n)           //wrong status
-        assert  query(filterUnderTest, 's:view').accept(statusP14n)              //match partial status
-        assert  query(filterUnderTest, 'viewing').accept(statusP14n)             //match partial name
-        assert !query(filterUnderTest, 'n=viewing').accept(statusP14n)           //incorrect full name
+        assert  query(filter, 'review').accept(statusP14n)              //match either status or name
+        assert !query(filter, 's:viewing').accept(statusP14n)           //wrong status
+        assert  query(filter, 's:view').accept(statusP14n)              //match partial status
+        assert  query(filter, 'viewing').accept(statusP14n)             //match partial name
+        assert !query(filter, 'n=viewing').accept(statusP14n)           //incorrect full name
     }
 
     void testSearchSimulations() {
@@ -237,19 +242,19 @@ class AllFieldsFilterTests extends GroovyTestCase {
                 name:'testName',  parameterization: createP14nCacheItem([:]), randomSeed:12345
         ])
         verifyOnlyNameSensitiveFiltersMatch('test', simulation)
-        assert !query(filterUnderTest, 'not found').accept(simulation)
-        assert !query(filterUnderTest, 'name:not found').accept(simulation)
+        assert !query(filter, 'not found').accept(simulation)
+        assert !query(filter, 'name:not found').accept(simulation)
 
         // Random seed tests
         //
-        assert  query(filterUnderTest, 'seed:345').accept(simulation)        //partial match seed
-        assert !query(filterUnderTest, '!seed:345').accept(simulation)       //fail to reject good snippet of seed
-        assert !query(filterUnderTest, 'seed:543').accept(simulation)        //partial match fails on bad seed snippet
-        assert  query(filterUnderTest, '!seed:543').accept(simulation)       //successfully reject foreign substring on seed
-        assert !query(filterUnderTest, 'seed=345').accept(simulation)        //exact match fails on wrong seed
-        assert  query(filterUnderTest, '!seed=345').accept(simulation)       //successfully reject wrong seed
-        assert !query(filterUnderTest, '!seed=12345').accept(simulation)     //fail to reject good seed
-        assert  query(filterUnderTest, 'seed=12345').accept(simulation)      //successfully match correct seed
+        assert  query(filter, 'seed:345').accept(simulation)        //partial match seed
+        assert !query(filter, '!seed:345').accept(simulation)       //fail to reject good snippet of seed
+        assert !query(filter, 'seed:543').accept(simulation)        //partial match fails on bad seed snippet
+        assert  query(filter, '!seed:543').accept(simulation)       //successfully reject foreign substring on seed
+        assert !query(filter, 'seed=345').accept(simulation)        //exact match fails on wrong seed
+        assert  query(filter, '!seed=345').accept(simulation)       //successfully reject wrong seed
+        assert !query(filter, '!seed=12345').accept(simulation)     //fail to reject good seed
+        assert  query(filter, 'seed=12345').accept(simulation)      //successfully match correct seed
 
         // Sims should match on their P14n name but not on their p14n's tags
         //
@@ -261,10 +266,10 @@ class AllFieldsFilterTests extends GroovyTestCase {
                 parameterization:parameterization,
                 tags:ImmutableList.copyOf([new Tag(name: 'simTagName'), new Tag(name: 'simTagTwo')]),
         ])
-        assert  query(filterUnderTest, 'PARAM_NAME').accept(simulation)     //should match on pn
-        assert  query(filterUnderTest, 'name:param_').accept(simulation)    //case insensitive too
-        assert  query(filterUnderTest, 't:simtag').accept(simulation)       //match on sim's tags
-        assert !query(filterUnderTest, 't:paramTagName').accept(simulation) //no match on pn's tags
+        assert  query(filter, 'PARAM_NAME').accept(simulation)     //should match on pn
+        assert  query(filter, 'name:param_').accept(simulation)    //case insensitive too
+        assert  query(filter, 't:simtag').accept(simulation)       //match on sim's tags
+        assert !query(filter, 't:paramTagName').accept(simulation) //no match on pn's tags
 
         // Sims should match on their result config's name
         // (If configs had tags, sims shouldn't match on them - test may be useful one day)
@@ -277,9 +282,9 @@ class AllFieldsFilterTests extends GroovyTestCase {
                 parameterization:parameterization, resultConfiguration:resultConfiguration,
                 tags:ImmutableList.copyOf([new Tag(name: 'testName'), new Tag(name: 'secondTag')]),
         ])
-        assert  query(filterUnderTest, 'TEMPLATE_NAME').accept(simulation)      //should match tmpl name
-        assert  query(filterUnderTest, 'name:template').accept(simulation)      //should match on tmpl
-        assert !query(filterUnderTest, 't:templateTagName').accept(simulation)  //no match on "tpl's tags"
+        assert  query(filter, 'TEMPLATE_NAME').accept(simulation)      //should match tmpl name
+        assert  query(filter, 'name:template').accept(simulation)      //should match on tmpl
+        assert !query(filter, 't:templateTagName').accept(simulation)  //no match on "tpl's tags"
 
         // Filter on Deal id
         //
@@ -288,14 +293,14 @@ class AllFieldsFilterTests extends GroovyTestCase {
                 name:'some other name',
                 parameterization:parameterization,
         ])
-        assert  query(filterUnderTest, 'd=12345').accept(simulation)        //match only pn's exact deal id
-        assert  query(filterUnderTest, '12345').accept(simulation)          //match including pn's deal id
-        assert  query(filterUnderTest, 'dealid:2345').accept(simulation)    //match partial only deal id
-        assert  query(filterUnderTest, '2345').accept(simulation)           //match including partial deal id
-        assert !query(filterUnderTest, 'd=99999').accept(simulation)        //wrong pn's exact deal id
-        assert !query(filterUnderTest, '99999').accept(simulation)          //wrong including pn's deal id
-        assert !query(filterUnderTest, 'dealid:999 ').accept(simulation)    //wrong partial only deal id
-        assert !query(filterUnderTest, ' 999').accept(simulation)           //wrong including partial deal id
+        assert  query(filter, 'd=12345').accept(simulation)        //match only pn's exact deal id
+        assert  query(filter, '12345').accept(simulation)          //match including pn's deal id
+        assert  query(filter, 'dealid:2345').accept(simulation)    //match partial only deal id
+        assert  query(filter, '2345').accept(simulation)           //match including partial deal id
+        assert !query(filter, 'd=99999').accept(simulation)        //wrong pn's exact deal id
+        assert !query(filter, '99999').accept(simulation)          //wrong including pn's deal id
+        assert !query(filter, 'dealid:999 ').accept(simulation)    //wrong partial only deal id
+        assert !query(filter, ' 999').accept(simulation)           //wrong including partial deal id
 
         // Filter on iterations
         //
@@ -305,53 +310,56 @@ class AllFieldsFilterTests extends GroovyTestCase {
                 parameterization:parameterization, resultConfiguration:resultConfiguration,
                 tags:ImmutableList.copyOf([new Tag(name: 'paramTestName')]),
         ])
-        assert  query(filterUnderTest, 'its=5000').accept(simulation)       //should match exact iterations
-        assert  query(filterUnderTest, 'iterations=5000').accept(simulation)//should match exact iterations
-        assert !query(filterUnderTest, 'its=5').accept(simulation)          //but not match wrong iterations
-        assert  query(filterUnderTest, 'its:5').accept(simulation)          //should match partially
-        assert  query(filterUnderTest, 'iterations:5').accept(simulation)   //ditto
-        assert  query(filterUnderTest, '!its=4321').accept(simulation)      //should reject wrong value
-        assert !query(filterUnderTest, '!its:50').accept(simulation)        //should fail to reject contained substring
-        assert !query(filterUnderTest, 'its:1234').accept(simulation)       //should fail to match foreign substring
+        assert  query(filter, 'its=5000').accept(simulation)       //should match exact iterations
+        assert  query(filter, 'iterations=5000').accept(simulation)//should match exact iterations
+        assert !query(filter, 'its=5').accept(simulation)          //but not match wrong iterations
+        assert  query(filter, 'its:5').accept(simulation)          //should match partially
+        assert  query(filter, 'iterations:5').accept(simulation)   //ditto
+        assert  query(filter, '!its=4321').accept(simulation)      //should reject wrong value
+        assert !query(filter, '!its:50').accept(simulation)        //should fail to reject contained substring
+        assert !query(filter, 'its:1234').accept(simulation)       //should fail to match foreign substring
     }
 
     void testSearchResources() {
         ResourceCacheItem resource = createResourceCacheItem([name:'testName'])
         verifyOnlyNameSensitiveFiltersMatch('TEST', resource)
-        assert !query(filterUnderTest, 'not found').accept(resource)
-        assert !query(filterUnderTest, 'tag:not found').accept(resource)
-        assert !query(filterUnderTest, 'state:not found').accept(resource)
-        assert !query(filterUnderTest, 'dealid:not found').accept(resource)
-        assert !query(filterUnderTest, 'owner:not found').accept(resource)
+        assert !query(filter, 'not found').accept(resource)
+        assert !query(filter, 'tag:not found').accept(resource)
+        assert !query(filter, 'state:not found').accept(resource)
+        assert !query(filter, 'dealid:not found').accept(resource)
+        assert !query(filter, 'owner:not found').accept(resource)
 
         resource = createResourceCacheItem([
                 name:'some other name',
                 tags:ImmutableList.copyOf([new Tag(name: 'testName'), new Tag(name: 'secondTag')])
         ])
-        assert query(filterUnderTest, 'testName').accept(resource)
-        assert query(filterUnderTest, 'tag:testName').accept(resource)
-        assert !query(filterUnderTest, 'name:testName').accept(resource)
-        assert query(filterUnderTest, 'name:testName OR TAG:TESTNAME').accept(resource)
-        assert query(filterUnderTest, 'name:other AND tag:second').accept(resource)
+        assert query(filter, 'testName').accept(resource)
+        assert query(filter, 'tag:testName').accept(resource)
+        assert !query(filter, 'name:testName').accept(resource)
+        assert query(filter, 'name:testName OR TAG:TESTNAME').accept(resource)
+        assert query(filter, 'name:other AND tag:second').accept(resource)
     }
 
     void testSearchWithMultipleValues() {
         ResourceCacheItem resource1 = createResourceCacheItem([name:'firstName', versionNumber:new VersionNumber('1')])
         ResourceCacheItem resource2 = createResourceCacheItem([name:'secondName', versionNumber:new VersionNumber('2')])
         ResourceCacheItem resource3 = createResourceCacheItem([name:'firstName', versionNumber:new VersionNumber('3')])
-        assert query(filterUnderTest, 'firstName v1 OR secondName OR thirdName').accept(resource1)
-        assert filterUnderTest.accept(resource1)
-        assert filterUnderTest.accept(resource2)
-        assert !filterUnderTest.accept(resource3)
+        assert query(filter, 'firstName v1 OR secondName OR thirdName').accept(resource1)
+        assert filter.accept(resource2)
+        assert !filter.accept(resource3)
 
-        // TODO for some reason ResourceCacheItem is treated different to other items
-        // i.e. you can search for the version as part of the name search
-        // This needs investigation
         //
-        assert query(filterUnderTest, 'name=firstName v1').accept(resource1)
-        assert query(filterUnderTest, 'name:first AND name:v1').accept(resource1)
-        assert !query(filterUnderTest, 'name:first AND name:v2').accept(resource1)
-        assert query(filterUnderTest, 'name:first OR name:v2').accept(resource1)
+        // Note: you can search for the version as part of a 'name contains' search
+        // 2016-03-22 Turns out the CacheItem is a hierarchy roughly parallel to Modelling items and only
+        // the ResourceCacheItem class had a VersionNumber in it. Am changing so also ResultConfig- and
+        // P14n- respective items also ahve it.
+        //
+        assert query(filter, 'name:firstName v1').accept(resource1)
+        assert query(filter, 'name = firstName ').accept(resource1)
+        assert query(filter, 'name != unknownName ').accept(resource1)
+        assert query(filter, 'name:first AND name:v1').accept(resource1)
+        assert !query(filter, 'name:first AND name:v2').accept(resource1)
+        assert query(filter, 'name:first OR name:v2').accept(resource1)
 
     }
 
@@ -367,40 +375,40 @@ class AllFieldsFilterTests extends GroovyTestCase {
 
         //Generic filter should match by name
         //
-        assert  (query(filterUnderTest, nameFragment)).accept(modellingItem)
+        assert  (query(filter, nameFragment)).accept(modellingItem)
 
         //Name-specific filter should match by name
         //
-        assert  (query(filterUnderTest, 'name:' + nameFragment)).accept(modellingItem)
-        assert  (query(filterUnderTest, 'n:' + nameFragment)).accept(modellingItem)
-        assert !(query(filterUnderTest, '!n:' + nameFragment)).accept(modellingItem)
+        assert  (query(filter, 'name:' + nameFragment)).accept(modellingItem)
+        assert  (query(filter, 'n:' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, '!n:' + nameFragment)).accept(modellingItem)
 
         //Other-column-specific filters should not match by name
         //
-        assert !(query(filterUnderTest, 'dealid:' + nameFragment)).accept(modellingItem)
-        assert !(query(filterUnderTest, 'd:' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 'dealid:' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 'd:' + nameFragment)).accept(modellingItem)
 
-        assert !(query(filterUnderTest, 'owner:' + nameFragment)).accept(modellingItem)
-        assert !(query(filterUnderTest, 'o:' + nameFragment)).accept(modellingItem)
-        assert  (query(filterUnderTest, '!o:' + nameFragment)).accept(modellingItem)   // all items have owner field
+        assert !(query(filter, 'owner:' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 'o:' + nameFragment)).accept(modellingItem)
+        assert  (query(filter, '!o:' + nameFragment)).accept(modellingItem)   // all items have owner field
 
-        assert !(query(filterUnderTest, 'state:' + nameFragment)).accept(modellingItem)
-        assert !(query(filterUnderTest, 's:' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 'state:' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 's:' + nameFragment)).accept(modellingItem)
 
-        assert !(query(filterUnderTest, 'tag:' + nameFragment)).accept(modellingItem)
-        assert !(query(filterUnderTest, 't:' + nameFragment)).accept(modellingItem)
-        assert  (query(filterUnderTest, '!t:' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 'tag:' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 't:' + nameFragment)).accept(modellingItem)
+        assert  (query(filter, '!t:' + nameFragment)).accept(modellingItem)
 
-        assert !(query(filterUnderTest, 'seed:' + nameFragment)).accept(modellingItem)
-        assert !(query(filterUnderTest, 'seed=' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 'seed:' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 'seed=' + nameFragment)).accept(modellingItem)
 
-        assert !(query(filterUnderTest, 'iterations:' + nameFragment)).accept(modellingItem)
-        assert !(query(filterUnderTest, 'iterations=' + nameFragment)).accept(modellingItem)
-        assert !(query(filterUnderTest, 'its:' + nameFragment)).accept(modellingItem)
-        assert !(query(filterUnderTest, 'its=' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 'iterations:' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 'iterations=' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 'its:' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 'its=' + nameFragment)).accept(modellingItem)
 
-        assert !(query(filterUnderTest, 'dbid:' + nameFragment)).accept(modellingItem)
-        assert !(query(filterUnderTest, 'dbid=' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 'dbid:' + nameFragment)).accept(modellingItem)
+        assert !(query(filter, 'dbid=' + nameFragment)).accept(modellingItem)
 
     }
 }

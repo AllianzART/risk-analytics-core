@@ -13,6 +13,8 @@ import org.pillarone.riskanalytics.core.remoting.TransactionInfo
 import org.pillarone.riskanalytics.core.remoting.impl.RemotingUtils
 import org.pillarone.riskanalytics.core.util.Configuration
 
+import static org.pillarone.riskanalytics.core.search.MatchTerm.getNonePrefix
+
 /* frahman 2014-01-02 Extended filtering syntax introduced.
 
   Originally :-
@@ -38,7 +40,7 @@ import org.pillarone.riskanalytics.core.util.Configuration
    This has been extended as described below.
 
    Note: The implementation is not very 'object oriented' and might fit nicely into some kind of visitor
-   pattern implementation if some bright spark can see how to do that without doubling the size of the
+   pattern implementation if some brightspark can see how to do that without doubling the size of the
    code (or doubling the filtering time :-P ) (or both :P :P)
    -----------------------------------------
 
@@ -46,9 +48,12 @@ import org.pillarone.riskanalytics.core.util.Configuration
 
         Terms can focused on a specific field by prefixing with one of (case not sensitive):
             DEALID:, NAME:, OWNER:, STATE:, or TAG:
+            *New* DEALNAME: (dn) DEALTAG: (dt), SEED:, ITERATIONS: (its) and DBID:
+            *New: Id-matchers can take a CSV list value
+
         (Shorter forms D:, N:, O:, S:, and T: are allowed too.)
 
-        This refinement decays to the old behaviour if keywords are not used.
+        This refinement decays gracefully to the old behaviour if keywords are not used.
 
         If term begins with "<keyword>:" and <keyword> is relevant to the item type being matched, use it as now.
         (Ditto if term doesn't begin with "<keyword>:")
@@ -129,18 +134,35 @@ class AllFieldsFilter implements ISearchFilter {
     }
 
 
-    List<String[]> matchTerms;
+    List<MatchTerm[]> matchTermArrays;
 
     // Add setter to avoid splitting query string for each item ( > 3K items )
     //
     void setQuery(String q) {
         LOG.debug("*** Splitting up filter : " + q)
-        // Do we need to load up list of transaction names ? Only if filter references them..
+        query = q
+
+        String[] restrictions = query.split(AND_SEPARATOR)
+        LOG.debug("Restrictions (AND clauses): " + restrictions)
+        if (matchTermArrays == null) {
+            matchTermArrays = new ArrayList<MatchTerm[]>();
+        }
+        matchTermArrays.clear()
+        restrictions.each {
+            String[] orArray = it.split(OR_SEPARATOR)
+            MatchTerm[] matcherArray = (orArray.collect { new MatchTerm(it.trim())}).toArray() as MatchTerm[]
+            LOG.debug("Terms (OR clauses): " + orArray)
+            matchTermArrays.add(matcherArray)
+        }
+
+        // Do we need to load up list of transaction names ? Only if filter EXPLICITLY references them..
         //
-        if( StringUtils.containsIgnoreCase(q,FilterHelp.dealNamePrefix)   ||
-            StringUtils.containsIgnoreCase(q,FilterHelp.dealNamePrefixEq) ||
-            StringUtils.containsIgnoreCase(q,FilterHelp.dealNameShort)    ||
-            StringUtils.containsIgnoreCase(q,FilterHelp.dealNameShortEq)
+        if( matchTermArrays.any { MatchTerm[] matchTerms ->
+                matchTerms.any {
+                    it.getPrefix().startsWith(MatchTerm.dealNameShort)    ||
+                    it.getPrefix().startsWith(MatchTerm.dealName)
+                }
+            }
         ){
             List<TransactionInfo> txnList = RemotingUtils.allTransactions
 
@@ -151,21 +173,6 @@ class AllFieldsFilter implements ISearchFilter {
             }
             setTransactions( txnList )
         }
-
-        query = q
-
-        String[] restrictions = query.split(AND_SEPARATOR)
-        LOG.debug("Restrictions (AND clauses): " + restrictions)
-        if (matchTerms == null) {
-            matchTerms = new ArrayList<>();
-        }
-        matchTerms.clear()
-        restrictions.each {
-            String[] orArray = it.split(OR_SEPARATOR)
-            orArray.each { String bit -> bit = bit.trim() }
-            LOG.debug("Terms (OR clauses): " + orArray)
-            matchTerms.add(orArray)
-        }
     }
 
     @Override
@@ -173,25 +180,25 @@ class AllFieldsFilter implements ISearchFilter {
         if( !item ){
             false
         }
-        if( (!matchTerms)  || matchTerms.empty ){
+        if( (!matchTermArrays)  || matchTermArrays.empty ){
             true
         }
-        return matchTerms.every { passesRestriction(item, it) }
+        return matchTermArrays.every { passesRestriction(item, it) }
     }
 
-    static boolean passesRestriction(CacheItem item, String[] matchTerms) {
+    static boolean passesRestriction(CacheItem item, MatchTerm[] matchTerms) {
 
         // Name, owner and id fields found on every item type
         //
         return  FilterHelp.matchName(item, matchTerms)  ||
                 FilterHelp.matchOwner(item, matchTerms) ||
-                FilterHelp.matchDbId(item, matchTerms) ||
+                FilterHelp.matchDbId(item, matchTerms)  ||
                 internalAccept(item, matchTerms)
     }
 
     // These items must already have failed to match on name / owner if we get here.
     //
-    private static boolean internalAccept(CacheItem item, String[] searchStrings) {
+    private static boolean internalAccept(CacheItem item, MatchTerm[] searchStrings) {
         LOG.debug("CacheItem IGNORED by AllFieldsFilter: ${item.nameAndVersion} ")
         return false
     }
@@ -201,31 +208,31 @@ class AllFieldsFilter implements ISearchFilter {
     //  --NEW--
     //  or random seed (helpful for version migration comparison reports in new releases).
     //
-    private static boolean internalAccept(SimulationCacheItem sim, String[] matchTerms) {
+    private static boolean internalAccept(SimulationCacheItem sim, MatchTerm[] matchTerms) {
         return FilterHelp.matchTags(sim, matchTerms) ||
                 matchTerms.any {
-                    FilterHelp.isNameAcceptor(it) &&
-                            (
-                              StringUtils.containsIgnoreCase(sim.parameterization?.name, FilterHelp.getText(it)) ||
-                              StringUtils.containsIgnoreCase(sim.resultConfiguration?.name, FilterHelp.getText(it))
-                            )
+                    it.isNameAcceptor() &&
+                    (
+                        StringUtils.containsIgnoreCase(sim.parameterization?.nameAndVersion, it.getText()) ||
+                        StringUtils.containsIgnoreCase(sim.resultConfiguration?.nameAndVersion, it.getText())
+                    )
                 } ||
                 (
-                        //Can disable this to check performance impact..
-                        //
-                        matchSimulationResultsOnDealId && FilterHelp.matchDeal(sim.parameterization, matchTerms, getTransactions())
+                    //Can disable this to check performance impact..
+                    //
+                    matchSimulationResultsOnDealId && FilterHelp.matchDeal(sim.parameterization, matchTerms, getTransactions())
                 ) ||
                 matchTerms.any {
-                    (FilterHelp.isSeedEqualsOp(it)    &&  StringUtils.equals(""+sim.randomSeed, FilterHelp.getText(it))) ||
-                    (FilterHelp.isSeedNotEqualsOp(it) && !StringUtils.equals(""+sim.randomSeed, FilterHelp.getText(it))) ||
-                    (FilterHelp.isSeedAcceptor(it)    &&  StringUtils.contains(""+sim.randomSeed, FilterHelp.getText(it))) ||
-                    (FilterHelp.isSeedRejector(it)    && !StringUtils.contains(""+sim.randomSeed, FilterHelp.getText(it)))
+                    (it.isSeedEqualsOp()    &&  StringUtils.equals(""+sim.randomSeed, it.getText()))   ||
+                    (it.isSeedNotEqualsOp() && !StringUtils.equals(""+sim.randomSeed, it.getText()))   ||
+                    (it.isSeedAcceptor()    &&  StringUtils.contains(""+sim.randomSeed, it.getText())) ||
+                    (it.isSeedRejector()    && !StringUtils.contains(""+sim.randomSeed, it.getText()))
                 } ||
                 matchTerms.any {
-                    (FilterHelp.isIterationsEqualsOp(it)    &&  StringUtils.equals(""+sim.numberOfIterations, FilterHelp.getText(it))) ||
-                    (FilterHelp.isIterationsNotEqualsOp(it) && !StringUtils.equals(""+sim.numberOfIterations, FilterHelp.getText(it))) ||
-                    (FilterHelp.isIterationsAcceptor(it)    &&  StringUtils.contains(""+sim.numberOfIterations, FilterHelp.getText(it))) ||
-                    (FilterHelp.isIterationsRejector(it)    && !StringUtils.contains(""+sim.numberOfIterations, FilterHelp.getText(it)))
+                    (it.isIterationsEqualsOp()    &&  StringUtils.equals(""+sim.numberOfIterations,   it.getText())) ||
+                    (it.isIterationsNotEqualsOp() && !StringUtils.equals(""+sim.numberOfIterations,   it.getText())) ||
+                    (it.isIterationsAcceptor()    &&  StringUtils.contains(""+sim.numberOfIterations, it.getText())) ||
+                    (it.isIterationsRejector()    && !StringUtils.contains(""+sim.numberOfIterations, it.getText()))
                 } ||
                 (
                     //Can disable this to check performance impact..
@@ -237,11 +244,11 @@ class AllFieldsFilter implements ISearchFilter {
     // This override renders Batches immune to filtering (so they always appear).
     // Set -DfilterBatchesInGUI=true to remove this immunity.
     //
-    private static boolean internalAccept(BatchCacheItem b, String[] matchTerms) {
+    private static boolean internalAccept(BatchCacheItem b, MatchTerm[] matchTerms) {
         return !filterBatchesInGUI;
     }
 
-    private static boolean internalAccept(ParameterizationCacheItem p14n, String[] matchTerms) {
+    private static boolean internalAccept(ParameterizationCacheItem p14n, MatchTerm[] matchTerms) {
         return FilterHelp.matchTags(p14n, matchTerms) ||
                 FilterHelp.matchState(p14n, matchTerms) ||
                 FilterHelp.matchDeal(p14n, matchTerms, transactions ) ||
@@ -249,7 +256,7 @@ class AllFieldsFilter implements ISearchFilter {
         ;
     }
 
-    private static boolean internalAccept(ResourceCacheItem res, String[] matchTerms) {
+    private static boolean internalAccept(ResourceCacheItem res, MatchTerm[] matchTerms) {
         return FilterHelp.matchTags(res, matchTerms);
     }
 
@@ -260,463 +267,110 @@ class AllFieldsFilter implements ISearchFilter {
 
         private static Log LOG = LogFactory.getLog(FilterHelp)
 
-        //Search term can begin with a column prefix to restrict its use against a specific 'column'
-        static final String dealIdPrefix = "DEALID:"
-        static final String dealNamePrefix = "DEALNAME:"
-        static final String dealTagPrefix = "DEALTAG:"
-        static final String namePrefix = "NAME:"
-        static final String ownerPrefix = "OWNER:"
-        static final String statePrefix = "STATE:"
-        static final String tagPrefix = "TAG:"
 
-        static final String dealIdPrefixEq = "DEALID="
-        static final String dealNamePrefixEq = "DEALNAME="
-        static final String dealTagPrefixEq = "DEALTAG="
-        static final String namePrefixEq = "NAME="
-        static final String ownerPrefixEq = "OWNER="
-        static final String statePrefixEq = "STATE="
-        static final String tagPrefixEq = "TAG="
-        static final String nonePrefix = "";
-
-        //Shorter versions of the above for more concise filter expressions
-        static final String dealIdShort = "D:"
-        static final String dealNameShort = "DN:"
-        static final String dealTagShort = "DT:"
-        static final String nameShort = "N:"
-        static final String ownerShort = "O:"
-        static final String stateShort = "S:"
-        static final String tagShort = "T:"
-
-        static final String dealIdShortEq = "D="
-        static final String dealNameShortEq = "DN="
-        static final String dealTagShortEq = "DT="
-        static final String nameShortEq = "N="
-        static final String ownerShortEq = "O="
-        static final String stateShortEq = "S="
-        static final String tagShortEq = "T="
-
-        //Special match operators - useful for admin work
-        //
-        static final String seedPrefix          = "SEED:"   //randomSeed used in a sim
-        static final String seedPrefixEq        = "SEED="
-        static final String dbIdPrefix          = "DBID:"   //DB ID of items
-        static final String dbIdPrefixEq        = "DBID="
-        static final String iterationsPrefix    = "ITERATIONS:"   //numberOfIterations used in a sim
-        static final String iterationsShort     = "ITS:"
-        static final String iterationsPrefixEq  = "ITERATIONS="
-        static final String iterationsShortEq   = "ITS="
-
-        // TODO Should enforce excluding these special characters from item fields (name, tags, status etc)
-        //
-        static final String FILTER_NEGATION = "!"
-        static final String COLON = ":"
-        static final String EQUALS = "="
-
-        //In expected *most-frequently-used-first* order (need for speed):
-        //
-        static final String[] columnFilterPrefixes = [
-                tagPrefix, tagShort,
-                namePrefix, nameShort,
-                statePrefix, stateShort,
-                ownerPrefix, ownerShort,
-                dealIdPrefix, dealIdShort,
-
-                tagPrefixEq, tagShortEq,
-                namePrefixEq, nameShortEq,
-                statePrefixEq, stateShortEq,
-                ownerPrefixEq, ownerShortEq,
-                dealIdPrefixEq, dealIdShortEq,
-
-                seedPrefixEq,
-                seedPrefix,
-                iterationsShortEq,
-                iterationsPrefixEq,
-                iterationsShort,
-                iterationsPrefix,
-                dbIdPrefixEq,
-                dbIdPrefix,
-                dealNamePrefix, dealNameShort,
-                dealNamePrefixEq, dealNameShortEq,
-                dealTagPrefix, dealTagShort,
-                dealTagPrefixEq, dealTagShortEq,
-
-        ];
 
         // Gets list of distinct tags on all p14ns in given deal
         // (http://docs.jboss.org/hibernate/core/3.6/reference/en-US/html/queryhql.html)
         //
         static final String dealTagQuery = "select distinct pt.tag.name as tagName " +
-                    "from ParameterizationDAO as pd " +
-                    "left outer join pd.tags as pt " +
-                    "where pd.dealId = :dealId " +
-                    "and pt.tag.name <> 'LOCKED' "
-
-        private static String previousTerm = null
-        private static String previousPrefix = nonePrefix
-
-        // Search terms without a column prefix apply to all columns
-        private static boolean isGeneralSearchTerm(String term) {
-            return nonePrefix == getColumnFilterPrefix(term);
-        }
-
-        // For use in showing tips in search field
-        //
-        public static String[] getAllColumnFilterPrefixes(){
-            columnFilterPrefixes
-        }
-
-        // Check if legal prefix present (copes with extra spaces after ! or before :)
-        // AR-271 cache prefix till new match term given (better: store prefix in match term object)
-        //
-        private static String getColumnFilterPrefix(String term) {
-            if( StringUtils.equalsIgnoreCase(term, previousTerm ) ){
-                return previousPrefix
-            }
-            previousTerm = term
-            previousPrefix = nonePrefix
-
-            int colonIndex = term.indexOf(COLON);
-            int equalsIndex = term.indexOf(EQUALS);
-            if (colonIndex == -1 && equalsIndex == -1) { // not a column-specific term
-                return nonePrefix;
-            }
-            if (colonIndex != -1 && equalsIndex != -1) { // ambiguous - treat as generic search term
-                return nonePrefix;
-            }
-
-            int bangIndex = term.indexOf(FILTER_NEGATION);
-
-            if (   (colonIndex  != -1 &&  colonIndex  < bangIndex)      // : found and precedes !
-                || (equalsIndex != -1 &&  equalsIndex < bangIndex) ) {  // = found and precedes !
-                LOG.debug("getColumnFilterPrefix(term: ${term}): ':' or '=' precedes '!' - it's a weirdo, treat as a general search term.")
-                return nonePrefix;
-            }
-
-            //Column prefix sits between any bang and the colon or equals (only one of which is present)
-            //
-            String prefix = (colonIndex  != -1) ? term.substring(bangIndex + 1, colonIndex).trim()  + COLON
-                                                : term.substring(bangIndex + 1, equalsIndex).trim() + EQUALS
-
-            String found = columnFilterPrefixes.find { prefix.equalsIgnoreCase(it) };
-
-            if( !found ){
-                LOG.debug("getColumnFilterPrefix(term: ${term})-> ignoring unknown prefix: ${prefix}")
-                return nonePrefix;
-            }
-            previousPrefix = found
-            return found;
-        }
-
-        //Acceptor terms either have no prefix or prefix matches the column in question and ends in ':'
-        //
-        private static boolean isAcceptor(String term, final ArrayList<String> values) {
-            if (term.startsWith(FILTER_NEGATION)) return false;
-            String prefix = getColumnFilterPrefix(term)
-            if (prefix.endsWith(EQUALS)) return false
-            return values.any { it == prefix }
-        }
-
-        private static boolean isDealIdAcceptor(String term) {
-            isAcceptor( term, [nonePrefix, dealIdShort, dealIdPrefix] )
-        }
-
-        private static boolean isDealNameAcceptor(String term) {
-            isAcceptor( term, [nonePrefix, dealNameShort, dealNamePrefix] )
-        }
-
-        private static boolean isDealTagAcceptor(String term) {
-            // don't include nonePrefix here
-            // else serach terms not prefixed with 'dealtag' / 'dt' will trigger deal tag search
-            //
-            isAcceptor( term, [dealTagShort, dealTagPrefix] )
-        }
-
-        private static boolean isNameAcceptor(String term) {
-            isAcceptor( term, [nonePrefix, nameShort, namePrefix] )
-        }
-
-        private static boolean isOwnerAcceptor(String term) {
-            isAcceptor( term, [nonePrefix, ownerShort, ownerPrefix] )
-        }
-
-        private static boolean isStateAcceptor(String term) {
-            isAcceptor( term, [nonePrefix, stateShort, statePrefix] )
-        }
-
-        private static boolean isTagAcceptor(String term) {
-            isAcceptor( term, [nonePrefix, tagShort, tagPrefix] )
-        }
-
-        private static boolean isSeedAcceptor(String term) {
-            isAcceptor( term, [seedPrefix] )
-        }
-
-        private static boolean isDbIdAcceptor(String term) {
-            isAcceptor( term, [dbIdPrefix] )
-        }
-
-        private static boolean isIterationsAcceptor(String term) {
-            isAcceptor( term, [iterationsShort, iterationsPrefix] )
-        }
-
-        //Column-equals-operator terms have prefix matches the column in question and end in '='
-        //
-        private static boolean isEqualsOp(String term, final ArrayList<String> values) {
-            if (term.startsWith(FILTER_NEGATION) ) return false;
-            String prefix = getColumnFilterPrefix(term)
-            if (prefix.endsWith(COLON)) return false
-            return values.any { it == prefix }
-        }
-
-        private static boolean isDealIdEqualsOp(String term) {
-            isEqualsOp( term, [dealIdShortEq, dealIdPrefixEq] )
-        }
-
-        private static boolean isDealNameEqualsOp(String term) {
-            isEqualsOp( term, [dealNameShortEq, dealNamePrefixEq] )
-        }
-
-        private static boolean isDealTagEqualsOp(String term) {
-            isEqualsOp( term, [dealTagShortEq, dealTagPrefixEq] )
-        }
-
-        private static boolean isNameEqualsOp(String term) {
-            isEqualsOp( term, [nameShortEq, namePrefixEq] )
-        }
-
-        private static boolean isOwnerEqualsOp(String term) {
-            isEqualsOp( term, [ownerShortEq, ownerPrefixEq] )
-        }
-
-        private static boolean isStateEqualsOp(String term) {
-            isEqualsOp( term, [stateShortEq, statePrefixEq] )
-        }
-
-        private static boolean isTagEqualsOp(String term) {
-            isEqualsOp( term, [tagShortEq, tagPrefixEq] )
-        }
-
-        private static boolean isSeedEqualsOp(String term) {
-            isEqualsOp( term, [seedPrefixEq] )
-        }
-
-        private static boolean isDbIdEqualsOp(String term) {
-            isEqualsOp( term, [dbIdPrefixEq] )
-        }
-
-        private static boolean isIterationsEqualsOp(String term) {
-            isEqualsOp( term, [iterationsShortEq, iterationsPrefixEq] )
-        }
-
-//        // Column-less-operator terms have prefix matches the column in question and end in '<'
-//        // Mainly useful for iterations when cleaning up old sims
-//        //
-//
-//        private static boolean iLessOp(String term, final ArrayList<String> values) {
-//            if (term.startsWith(FILTER_NEGATION) ) return false;
-//            String prefix = getColumnFilterPrefix(term)
-//            if (prefix.endsWith(COLON)) return false
-//            return values.any { it == prefix }
-//        }
-//
-//
-//        private static boolean isIterationsLessOp(String term) {
-//            isLessOp( term, [iterationsShort, iterationsPrefix] )
-//        }
-//
-
-        // Rejector terms begin with "!", match the column in question, and end in ':'
-        //
-        private static boolean isRejector(String term, final ArrayList<String> values) {
-            if (!term.startsWith(FILTER_NEGATION)) return false;
-            String prefix = getColumnFilterPrefix(term)
-            if (prefix.endsWith(EQUALS)) return false
-            return values.any { it == prefix }
-        }
-
-        private static boolean isDealIdRejector(String term) {
-            isRejector( term, [dealIdShort, dealIdPrefix] )
-        }
-
-        private static boolean isDealNameRejector(String term) {
-            isRejector( term, [dealNameShort, dealNamePrefix] )
-        }
-
-        private static boolean isDealTagRejector(String term) {
-            isRejector( term, [dealTagShort, dealTagPrefix] )
-        }
-
-        private static boolean isNameRejector(String term) {
-            isRejector( term, [nameShort, namePrefix] )
-        }
-
-        private static boolean isOwnerRejector(String term) {
-            isRejector( term, [ownerShort, ownerPrefix] )
-        }
-
-        private static boolean isStateRejector(String term) {
-            isRejector( term, [stateShort, statePrefix] )
-        }
-
-        private static boolean isTagRejector(String term) {
-            isRejector( term, [tagShort, tagPrefix] )
-        }
-
-        private static boolean isSeedRejector(String term) {
-            isRejector( term, [seedPrefix] )
-        }
-
-        private static boolean isDbIdRejector(String term) {
-            isRejector( term, [dbIdPrefix] )
-        }
-
-        private static boolean isIterationsRejector(String term) {
-            isRejector( term, [iterationsShort, iterationsPrefix] )
-        }
-
-        // Column-not-equals terms begin with "!", match the column in question, and end in '='
-        //
-        private static boolean isNotEqualsOp(String term, final ArrayList<String> values) {
-            if (!term.startsWith(FILTER_NEGATION)) return false;
-            String prefix = getColumnFilterPrefix(term)
-            if (prefix.endsWith(COLON)) return false
-            return values.any { it == prefix }
-        }
-
-        private static boolean isDealIdNotEqualsOp(String term) {
-            isNotEqualsOp( term, [dealIdShortEq, dealIdPrefixEq] )
-        }
-
-        private static boolean isDealNameNotEqualsOp(String term) {
-            isNotEqualsOp( term, [dealNameShortEq, dealNamePrefixEq] )
-        }
-
-        private static boolean isDealTagNotEqualsOp(String term) {
-            isNotEqualsOp( term, [dealTagShortEq, dealTagPrefixEq] )
-        }
-
-        private static boolean isNameNotEqualsOp(String term) {
-            isNotEqualsOp( term, [nameShortEq, namePrefixEq] )
-        }
-
-        private static boolean isOwnerNotEqualsOp(String term) {
-            isNotEqualsOp( term, [ownerShortEq, ownerPrefixEq] )
-        }
-
-        private static boolean isStateNotEqualsOp(String term) {
-            isNotEqualsOp( term, [stateShortEq, statePrefixEq] )
-        }
-
-        private static boolean isTagNotEqualsOp(String term) {
-            isNotEqualsOp( term, [tagShortEq, tagPrefixEq] )
-        }
-
-        private static boolean isSeedNotEqualsOp(String term) {
-            isNotEqualsOp( term, [seedPrefixEq] )
-        }
-
-        private static boolean isDbIdNotEqualsOp(String term) {
-            isNotEqualsOp( term, [dbIdPrefix] )
-        }
-
-        private static boolean isIterationsNotEqualsOp(String term) {
-            isNotEqualsOp( term, [iterationsShortEq, iterationsPrefixEq] )
-        }
+                "from ParameterizationDAO as pd " +
+                "left outer join pd.tags as pt " +
+                "where pd.dealId = :dealId " +
+                "and pt.tag.name <> 'LOCKED' "
 
 
-        private static boolean matchName(CacheItem item, String[] matchTerms) {
+        private static boolean matchName(CacheItem item, MatchTerm[] matchTerms) {
             return matchTerms.any {
-                          isNameAcceptor(it)    ?  StringUtils.containsIgnoreCase(item.nameAndVersion, getText(it))
-                        : isNameRejector(it)    ? !StringUtils.containsIgnoreCase(item.nameAndVersion, getText(it))
-                        : isNameEqualsOp(it)    ?  StringUtils.equalsIgnoreCase(item.nameAndVersion, getText(it))
-                        : isNameNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(item.nameAndVersion, getText(it))
-                        : false
-            };
-        }
-
-        private static boolean matchOwner(CacheItem item, String[] matchTerms) {
-            return matchTerms.any {
-                isOwnerAcceptor(it) ? StringUtils.containsIgnoreCase(item.creator?.username, getText(it))
-                        : isOwnerRejector(it) ? !StringUtils.containsIgnoreCase(item.creator?.username, getText(it))
-                        : false
-            };
-        }
-
-        private static boolean matchDbId(CacheItem item, String[] matchTerms) {
-            Long dbId = item?.id
-            final String itemId = ""+dbId
-            matchTerms.any {
-                isDbIdAcceptor(it)    ?  containsAnyCsvElement(itemId, getText(it), item )  // allow listing many
-                : isDbIdRejector(it)    ? !StringUtils.containsIgnoreCase(itemId, getText(it))
-                : isDbIdEqualsOp(it)    ?  equalsAnyCsvElement(itemId, getText(it), item)     // allow listing many
-                    : isDbIdNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(itemId, getText(it))
-                        : false
-            }
-
-        }
-
-        // Case insensitive
-        //
-        static boolean containsAnyCsvElement( String text, String csvTerms, CacheItem item ){
-            String[] terms = csvTerms.split(",")
-            terms.any { StringUtils.containsIgnoreCase(text, it) }
-        }
-        static boolean equalsAnyCsvElement( String text, String csvTerms, CacheItem item ){
-            String[] terms = csvTerms.split(",")
-            terms.any { StringUtils.equalsIgnoreCase(text, it) }
-        }
-
-        private static boolean matchState(ParameterizationCacheItem p14n, String[] matchTerms) {
-            return matchTerms.any {
-                          isStateAcceptor(it) ? StringUtils.containsIgnoreCase(p14n.status?.toString(), getText(it))
-                        : isStateRejector(it) ? !StringUtils.containsIgnoreCase(p14n.status?.toString(), getText(it))
-                        : false
-            };
-        }
-
-        private static boolean matchDeal(ParameterizationCacheItem p14n, String[] matchTerms, Map<Long,String> txInfos ) {
-
-            return matchTerms.any {
-                  isDealIdAcceptor(it)    ?  containsAnyCsvElement(p14n?.dealId?.toString(), getText(it), p14n) //allow listing many
-                : isDealIdEqualsOp(it)    ?  equalsAnyCsvElement(p14n?.dealId?.toString(), getText(it), p14n)   //allow listing many
-                : isDealIdRejector(it)    ? !StringUtils.containsIgnoreCase(p14n?.dealId?.toString(), getText(it))
-                : isDealIdNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(p14n?.dealId?.toString(), getText(it))
-                : isDealNameAcceptor(it)    ?  StringUtils.containsIgnoreCase(getDealName(p14n,txInfos), getText(it))
-                : isDealNameEqualsOp(it)    ?  StringUtils.equalsIgnoreCase(getDealName(p14n,txInfos), getText(it))
-                : isDealNameRejector(it)    ? !StringUtils.containsIgnoreCase(getDealName(p14n,txInfos), getText(it))
-                : isDealNameNotEqualsOp(it) ? !StringUtils.equalsIgnoreCase(getDealName(p14n,txInfos), getText(it))
+                  it.isNameAcceptor()    ?  StringUtils.containsIgnoreCase(item.nameAndVersion, it.getText())
+                : it.isNameRejector()    ? !StringUtils.containsIgnoreCase(item.nameAndVersion, it.getText())
+                : it.isNameEqualsOp()    ?  StringUtils.equalsIgnoreCase(item.name, it.getText())
+                : it.isNameNotEqualsOp() ? !StringUtils.equalsIgnoreCase(item.name, it.getText())
                 : false
             };
         }
 
-        // ROFO scenarios, want to be able to exclude items connected to a deal that has *any* item with new qtr tag..
+        private static boolean matchOwner(CacheItem item, MatchTerm[] matchTerms) {
+            return matchTerms.any {
+                  it.isOwnerAcceptor() ? StringUtils.containsIgnoreCase(item.creator?.username, it.getText())
+                : it.isOwnerRejector() ? !StringUtils.containsIgnoreCase(item.creator?.username, it.getText())
+                : false
+            };
+        }
+
+        private static boolean matchDbId(CacheItem item, MatchTerm[] matchTerms) {
+            Long dbId = item?.id
+            final String itemId = ""+dbId
+            matchTerms.any {
+                  it.isDbIdAcceptor()    ?  containsAnyCsvElement(itemId, it.getText() )  // allow listing many
+                : it.isDbIdRejector()    ? !StringUtils.containsIgnoreCase(itemId, it.getText())
+                : it.isDbIdEqualsOp()    ?  equalsAnyCsvElement(itemId, it.getText() )    // allow listing many
+                : it.isDbIdNotEqualsOp() ? !StringUtils.equalsIgnoreCase(itemId, it.getText())
+                : false
+            }
+        }
+
+        // Case insensitive
+        //
+        static boolean containsAnyCsvElement( String text, String csvTerms ){
+            String[] terms = csvTerms.split(",")
+            terms.any { StringUtils.containsIgnoreCase(text, it) }
+        }
+        static boolean equalsAnyCsvElement( String text, String csvTerms ){
+            String[] terms = csvTerms.split(",")
+            terms.any { StringUtils.equalsIgnoreCase(text, it) }
+        }
+
+        private static boolean matchState(ParameterizationCacheItem p14n, MatchTerm[] matchTerms) {
+            return matchTerms.any {
+                  it.isStateAcceptor() ? StringUtils.containsIgnoreCase(p14n.status?.toString(),  it.getText())
+                : it.isStateRejector() ? !StringUtils.containsIgnoreCase(p14n.status?.toString(), it.getText())
+                : false
+            };
+        }
+
+        private static boolean matchDeal(ParameterizationCacheItem p14n, MatchTerm[] matchTerms, Map<Long,String> txInfos ) {
+
+            return matchTerms.any {
+                  it.isDealIdAcceptor()      ?  containsAnyCsvElement(p14n?.dealId?.toString(), it.getText() ) //can use list
+                : it.isDealIdEqualsOp()      ?  equalsAnyCsvElement(p14n?.dealId?.toString(), it.getText() )   //can use list
+                : it.isDealIdRejector()      ? !StringUtils.containsIgnoreCase(p14n?.dealId?.toString(), it.getText())
+                : it.isDealIdNotEqualsOp()   ? !StringUtils.equalsIgnoreCase(p14n?.dealId?.toString(), it.getText())
+                : it.isDealNameAcceptor()    ?  StringUtils.containsIgnoreCase(FilterHelp.getDealName(p14n,txInfos), it.getText())
+                : it.isDealNameEqualsOp()    ?  StringUtils.equalsIgnoreCase(FilterHelp.getDealName(p14n,txInfos), it.getText())
+                : it.isDealNameRejector()    ? !StringUtils.containsIgnoreCase(FilterHelp.getDealName(p14n,txInfos), it.getText())
+                : it.isDealNameNotEqualsOp() ? !StringUtils.equalsIgnoreCase(FilterHelp.getDealName(p14n,txInfos), it.getText())
+                : false
+            };
+        }
+
+        // In ROFO scenarios, want to exclude items connected to a deal that has *any* item with new qtr tag..
         //
         // To avoid crippling performance (should really test this) I avoid db checks on items that have
         // no real deal set (ie ignoring sandbox and AZRe items)..
         //
-        private static boolean matchDealTags(ParameterizationCacheItem item, String[] matchTerms) {
+        private static boolean matchDealTags(ParameterizationCacheItem item, MatchTerm[] matchTerms) {
 
             return (0 < item?.dealId )  &&  matchTerms.any {
-                      isDealTagAcceptor(it)    ?  dealContainsLikeTag( item, it)
-                    : isDealTagEqualsOp(it)    ?  dealContainsExactTag(item, it)
-                    : isDealTagRejector(it)    ? !dealContainsLikeTag( item, it)
-                    : isDealTagNotEqualsOp(it) ? !dealContainsExactTag(item, it)
-                    : false
-                };
+                  it.isDealTagAcceptor()    ?  dealContainsTagLike( item, it.getText())
+                : it.isDealTagEqualsOp()    ?  dealContainsTagExact(item, it.getText())
+                : it.isDealTagRejector()    ? !dealContainsTagLike( item, it.getText())
+                : it.isDealTagNotEqualsOp() ? !dealContainsTagExact(item, it.getText())
+                : false
+            };
         }
 
         //e.g. 'dt:Q4 2013' to match a pn if any pn with same deal has tag with 'Q4 2013' in the name
         //
-        private static boolean dealContainsLikeTag(ParameterizationCacheItem item, String term, boolean equalsOp = false){
+        private static boolean dealContainsTagLike(ParameterizationCacheItem item, String term, boolean equalsOp = false){
 
-            // skip DB query if item itself satisfies dealtag check
+            // Try avoid DB query if item itself satisfies dealtag check
             //
             if(equalsOp){
-                if( item.tags*.name.any { StringUtils.equalsIgnoreCase(it, getText(term))} ){
+                if( item.tags*.name.any { StringUtils.equalsIgnoreCase(it, term)} ){
                     return true
                 }
             }else{
-                if( item.tags*.name.any { StringUtils.containsIgnoreCase(it, getText(term))} ){
+                if( item.tags*.name.any { StringUtils.containsIgnoreCase(it, term)} ){
                     return true
                 }
             }
@@ -726,11 +380,11 @@ class AllFieldsFilter implements ISearchFilter {
             List results = ParameterizationDAO.executeQuery(dealTagQuery, ["dealId": item.dealId], [readOnly: true])
 
             //LOG.debug("${results.size()} distinct tags on deal ${item.dealId}-related models eg (${item.name})")
-            return equalsOp ? results.any { String tag -> StringUtils.equalsIgnoreCase(  tag, getText(term))} :
-                              results.any { String tag -> StringUtils.containsIgnoreCase(tag, getText(term)) };
+            return equalsOp ? results.any { String tag -> StringUtils.equalsIgnoreCase(  tag, term)} :
+                              results.any { String tag -> StringUtils.containsIgnoreCase(tag, term) };
         }
-        private static boolean dealContainsExactTag(ParameterizationCacheItem item, String it){
-            return dealContainsLikeTag( item, it, true);
+        private static boolean dealContainsTagExact(ParameterizationCacheItem item, String it){
+            return dealContainsTagLike( item, it, true);
         }
 
         private static String getDealName(ParameterizationCacheItem p14n, Map<Long,String> transactions){
@@ -745,35 +399,29 @@ class AllFieldsFilter implements ISearchFilter {
                 throw new IllegalStateException(w)
             }
 
-            String name = transactions.get(p14n.dealId, "")
             if(!transactions.containsKey(p14n.dealId)){
                 LOG.warn("${p14n.nameAndVersion} - has unknown deal id '${p14n.dealId}'")
             }
-
-            return name;
+            return transactions.get(p14n.dealId, "");
         }
         // Only call this for things that have tags (Simulation, Parameterization or Resource)
-        private static boolean matchTags(def item, String[] matchTerms) {
+        private static boolean matchTags(def item, MatchTerm[] matchTerms) {
             return matchTerms.any { def it ->
-                if (isTagAcceptor(it)) {
+                if (it.isTagAcceptor()) {
                     //e.g. term 'tag:Q4 2013' will match any sim or pn tagged 'Q4 2013' (but also eg 'Q4 2013 ReRun')
-                    item.tags*.name.any { String tag -> StringUtils.containsIgnoreCase(tag, getText(it)) }
+                    item.tags*.name.any { String tag -> StringUtils.containsIgnoreCase(tag, it.getText()) }
                 }
-                else
-                if (isTagRejector(it)){
+                else if (it.isTagRejector()){
                     //e.g. term '!tag:Q4 2013' will match any sim or pn tagged 'H2 2013' (but not 'Q4 2013 ReRun')
-                    !item.tags*.name.any { String tag -> StringUtils.containsIgnoreCase(tag, getText(it)) }
-
+                    !item.tags*.name.any { String tag -> StringUtils.containsIgnoreCase(tag, it.getText()) }
                 }
-                else
-                if (isTagEqualsOp(it)) {
+                else if (it.isTagEqualsOp()) {
                     //e.g. term 'tag=Q4 2013' will match any sim or pn tagged 'Q4 2013' (but not eg 'Q4 2013 ReRun')
-                    item.tags*.name.any { String tag -> StringUtils.equalsIgnoreCase(tag, getText(it)) }
+                    item.tags*.name.any { String tag -> StringUtils.equalsIgnoreCase(tag, it.getText()) }
                 }
-                else
-                if (isTagNotEqualsOp(it)) {
+                else if (it.isTagNotEqualsOp()) {
                     //e.g. term '!tag = Q4 2013' will match any sim or pn tagged 'Q1 2015' (but also eg 'Q4 2013 ReRun')
-                    !item.tags*.name.any { String tag -> StringUtils.equalsIgnoreCase(tag, getText(it)) }
+                    !item.tags*.name.any { String tag -> StringUtils.equalsIgnoreCase(tag, it.getText()) }
                 }
                 else{
                     //e.g. term 'status:Q4 2013' would fail to match a sim tagged Q4 2013 (and status 'in review' etc)
@@ -789,13 +437,13 @@ class AllFieldsFilter implements ISearchFilter {
         // [a-z]+ * = alphabetic word followed by optional spaces
         // [:=]     = colon or equals
         //
+        @Deprecated
         private static String getText(String specificSearchTerm) {
             String raw = specificSearchTerm.replaceFirst("(?i)^[!]? *[a-z]+ *[:=]", ""); //case insensitive regex-replace
             LOG.debug("getText(${specificSearchTerm}-->${raw})")
 
             return raw.trim()
         }
-
     }
 
 }
