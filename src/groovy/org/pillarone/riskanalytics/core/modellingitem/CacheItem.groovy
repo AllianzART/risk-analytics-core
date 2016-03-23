@@ -1,6 +1,7 @@
 package org.pillarone.riskanalytics.core.modellingitem
 
 import org.joda.time.DateTime
+import org.pillarone.riskanalytics.core.simulation.item.VersionNumber
 import org.pillarone.riskanalytics.core.user.Person
 
 abstract class CacheItem {
@@ -25,8 +26,21 @@ abstract class CacheItem {
         this.modelClass = modelClass
     }
 
+    // Template method. Selected subclasses have a VersionNumber.
+    // But all subclasses have a getNameAndVersion() method.
+    // :-)
+    // Fixes AR-272 Allow searching items on full nameAndVersion
+    //
     String getNameAndVersion() {
-        name
+        if(getVersionNumber() != null){
+            "$name v${versionNumber?.toString()}"
+        }else{
+            return name
+        }
+    }
+
+    VersionNumber getVersionNumber(){
+        return null
     }
 
     abstract Class getItemClass()
