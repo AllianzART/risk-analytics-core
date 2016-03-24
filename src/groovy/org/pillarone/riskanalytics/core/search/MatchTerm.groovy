@@ -19,8 +19,9 @@ class MatchTerm  {
     static final String nonePrefix = ""
 
     static String getDealName(ParameterizationCacheItem paramterizationCacheItem, HashMap map){
-        LOG.error("Landed in MatchTerm.getDealName()")
-        return ""
+        String e = "Landed in MatchTerm.getDealName()"
+        LOG.error(e)
+        throw new IllegalStateException(e)
     }
 
     //Search term can begin with a column prefix to restrict its use against a specific 'column'
@@ -58,48 +59,30 @@ class MatchTerm  {
     //Use a lookup set (for speed):
     //
     static final Map<String,String> columnFilterPrefixes = [
-        name+EQUALS,            
-        name+COLON,
-        nameShort+EQUALS,       
-        nameShort+COLON,
-        owner+EQUALS,           
-        owner+COLON,
-        ownerShort+EQUALS,      
-        ownerShort+COLON,
-        state+EQUALS,           
-        state+COLON,
-        stateShort+EQUALS,      
-        stateShort+COLON,
-        tag+EQUALS,             
-        tag+COLON,
-        tagShort+EQUALS,        
-        tagShort+COLON,
+        name,
+        nameShort,
+        owner,
+        ownerShort,
+        state,
+        stateShort,
+        tag,
+        tagShort,
 
-        dealId+EQUALS,          
-        dealId+COLON,
-        dealIdShort+EQUALS,     
-        dealIdShort+COLON,
-        dealName+EQUALS,        
-        dealName+COLON,
-        dealNameShort+EQUALS,   
-        dealNameShort+COLON,
-        dealTag+EQUALS,         
-        dealTag+COLON,
-        dealTagShort+EQUALS,    
-        dealTagShort+COLON,
-        iterations+EQUALS,      
-        iterations+COLON,
-        iterationsShort+EQUALS, 
-        iterationsShort+COLON,
-
-        dbId+EQUALS,            
-        dbId+COLON,
-        seed+EQUALS,            
-        seed+COLON,
+        dealId,
+        dealIdShort,
+        dealName,
+        dealNameShort,
+        dealTag,
+        dealTagShort,
+        iterations,
+        iterationsShort,
+        dbId,
+        seed,
     ].collectEntries{ [ (it) : (it) ] }
 
     static final int MISSING = -1;
 
+    final String original;
     final String prefix;
     final String text;
     final int bangIndex;
@@ -113,6 +96,7 @@ class MatchTerm  {
     //
     MatchTerm(String term){
 
+        original    = term
         colonIndex  = term.indexOf(COLON);
         equalsIndex = term.indexOf(EQUALS);
         bangIndex   = term.indexOf(FILTER_NEGATION);
@@ -150,10 +134,15 @@ class MatchTerm  {
 
             //Column prefix sits (with any bang) before the colon/equals (only one of which is present)
             //
-            String found = (colonIndex != MISSING)  ? term.substring(0, colonIndex).trim()  + COLON
-                                                    : term.substring(0, equalsIndex).trim() + EQUALS
+            String found = (colonIndex != MISSING)  ? term.substring(0, colonIndex).trim()  //+ COLON
+                                                    : term.substring(0, equalsIndex).trim() //+ EQUALS
                                                     ;
-            String squished = found.replace(FILTER_NEGATION,'').replaceAll("\\s*",'');
+            String squished = found.replaceAll("\\s*",'');
+            if(bangIndex != MISSING){
+                //Remove the ! before trying to lookup a recognised prefix
+                //
+                squished = squished.replace(FILTER_NEGATION,'');
+            }
 
             String lookup = columnFilterPrefixes.get(squished.toUpperCase())
 
@@ -181,7 +170,7 @@ class MatchTerm  {
         if (equalsIndex != MISSING){ // checking for = here is not a mistake
             return false
         }
-        return values.any { prefix == (it.length() ? it+COLON : it)} // isAcceptor special (could be fed nonePrefix)
+        return values.any { prefix == it } // isAcceptor special (could be fed nonePrefix)
     }
 
     // Rejector terms begin with "!", match the column in question, and end in ':'
@@ -193,7 +182,7 @@ class MatchTerm  {
         if (equalsIndex != MISSING){ // checking for equalsIndex here is not a mistake
             return false
         }
-        return values.any { prefix == it+COLON }
+        return values.any { prefix == it }
     }
 
     //EqualsOp terms have prefix matches a column in question and ends in '='
@@ -205,10 +194,10 @@ class MatchTerm  {
         if (equalsIndex == MISSING){
             return false
         }
-        return values.any { prefix == it+EQUALS}
+        return values.any { prefix == it }
     }
 
-    // Not-equals terms begin with "!", match the column in question, and end in '='
+    // Not-equals terms contain "!", match the column in question, and end in '='
     //
     private boolean isNotEqualsOp(final ArrayList<String> values) {
         if (bangIndex == MISSING) {
@@ -217,7 +206,7 @@ class MatchTerm  {
         if (equalsIndex == MISSING){
             return false
         }
-        return values.any { prefix == it+EQUALS}
+        return values.any { prefix == it}
     }
 
     boolean isDealIdAcceptor() {
