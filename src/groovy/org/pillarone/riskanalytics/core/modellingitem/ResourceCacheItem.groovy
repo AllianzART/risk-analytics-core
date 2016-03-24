@@ -42,11 +42,6 @@ class ResourceCacheItem extends CacheItem {
     }
 
     @Override
-    String getNameAndVersion() {
-        "$name v${versionNumber?.toString()}"
-    }
-
-    @Override
     Class getItemClass() {
         Resource
     }

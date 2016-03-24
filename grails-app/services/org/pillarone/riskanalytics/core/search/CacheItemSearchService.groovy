@@ -104,11 +104,16 @@ class CacheItemSearchService {
 
     synchronized List<CacheItem> search(List<ISearchFilter> filters) {
 
-        for( ISearchFilter filter : filters ){
+//        for( ISearchFilter filter : filters ){
+//            if( filter instanceof AllFieldsFilter ){
+//
+//                String query = (filter as AllFieldsFilter)?.query
+//                LOG.info("Filter: '$query'")
+//            }
+//        }
+        filters.each { ISearchFilter filter ->
             if( filter instanceof AllFieldsFilter ){
-
-                String query = (filter as AllFieldsFilter)?.query
-                LOG.info("Filter: '$query'")
+                LOG.info("Filter: '${(filter as AllFieldsFilter)?.query}'")
             }
         }
 
@@ -120,14 +125,15 @@ class CacheItemSearchService {
         }
 
         List<CacheItem> results = []
-        List<CacheItem> cacheCopy = new ArrayList<CacheItem>(cache)
+//        List<CacheItem> cacheCopy = new ArrayList<CacheItem>(cache)
 
         if (PROFILE_CACHE_FILTERING) {
             t = System.currentTimeMillis()
             LOG.info("Timed " + (t - start) + " ms: copying cache")
         }
 
-        cacheCopy.each { CacheItem item ->
+//      cacheCopy.each { CacheItem item ->
+        cache.each { CacheItem item ->
             if (filters.every { it.accept(item) }) {
                 results << item
             }
