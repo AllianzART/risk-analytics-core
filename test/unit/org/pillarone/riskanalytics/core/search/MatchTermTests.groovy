@@ -66,7 +66,7 @@ class MatchTermTests extends GroovyTestCase {
         String text = "What's my name?"
         MatchTerm t = new MatchTerm(prefix+text)
 
-        assert t.prefix == MatchTerm.name + MatchTerm.COLON
+        assert t.prefix == MatchTerm.name
         assert t.text == text
 
         assert t.equalsIndex == MatchTerm.MISSING
@@ -121,32 +121,32 @@ class MatchTermTests extends GroovyTestCase {
 
         String text = "What's my name?"
         MatchTerm t = new MatchTerm("!name:" + text)
-        assert t.prefix == MatchTerm.name + MatchTerm.COLON
+        assert t.prefix == MatchTerm.name
         assert t.text == text
         checkNameNotLikeTerm(t)
 
         t = new MatchTerm("! name :" + text)
-        assert t.prefix == MatchTerm.name + MatchTerm.COLON
+        assert t.prefix == MatchTerm.name
         assert t.text == text
         checkNameNotLikeTerm(t)
 
         t = new MatchTerm("!  name: " + text)
-        assert t.prefix == MatchTerm.name + MatchTerm.COLON
+        assert t.prefix == MatchTerm.name
         assert t.text == text
         checkNameNotLikeTerm(t)
 
         t = new MatchTerm("name  !  :  " + text)
-        assert t.prefix == MatchTerm.name + MatchTerm.COLON
+        assert t.prefix == MatchTerm.name
         assert t.text == text
         checkNameNotLikeTerm(t)
 
         t = new MatchTerm("name!  :  " + text)
-        assert t.prefix == MatchTerm.name + MatchTerm.COLON
+        assert t.prefix == MatchTerm.name
         assert t.text == text
         checkNameNotLikeTerm(t)
 
         t = new MatchTerm("name !:  " + text)
-        assert t.prefix == MatchTerm.name + MatchTerm.COLON
+        assert t.prefix == MatchTerm.name
         assert t.text == text
         checkNameNotLikeTerm(t)
     }
@@ -206,7 +206,7 @@ class MatchTermTests extends GroovyTestCase {
         String text = "What's my name?"
         MatchTerm t = new MatchTerm(prefix+text)
 
-        assert t.prefix == MatchTerm.nameShort + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.nameShort
         assert t.text == text
 
         checkNameEqualsTerm(t)
@@ -265,37 +265,37 @@ class MatchTermTests extends GroovyTestCase {
 
         String scooby = "Scooby Doo, Where Are You?"
         MatchTerm t = new MatchTerm("!name=" + scooby)
-        assert t.prefix == MatchTerm.name + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.name
         assert t.text == scooby
         checkNameNotEqualTerm(t)
 
         t = new MatchTerm("! name =" + scooby)
-        assert t.prefix == MatchTerm.name + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.name
         assert t.text == scooby
         checkNameNotEqualTerm(t)
 
         t = new MatchTerm("!  name= " + scooby)
-        assert t.prefix == MatchTerm.name + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.name
         assert t.text == scooby
         checkNameNotEqualTerm(t)
 
         t = new MatchTerm("name!=" + scooby)
-        assert t.prefix == MatchTerm.name + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.name
         assert t.text == scooby
         checkNameNotEqualTerm(t)
 
         t = new MatchTerm("name  !  =  " + scooby)
-        assert t.prefix == MatchTerm.name + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.name
         assert t.text == scooby
         checkNameNotEqualTerm(t)
 
         t = new MatchTerm("name!  =  " + scooby)
-        assert t.prefix == MatchTerm.name + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.name
         assert t.text == scooby
         checkNameNotEqualTerm(t)
 
         t = new MatchTerm("na!me =  " + scooby)
-        assert t.prefix == MatchTerm.name + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.name
         assert t.text == scooby
         checkNameNotEqualTerm(t)
     }
@@ -353,37 +353,37 @@ class MatchTermTests extends GroovyTestCase {
 
         String scooby = "Scooby Doo, Where Are You?"
         MatchTerm t = new MatchTerm("!name=" + scooby)
-        assert t.prefix == MatchTerm.name + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.name
         assert t.text == scooby
         checkNameNotEqualTerm(t)
 
         t = new MatchTerm("! name =" + scooby)
-        assert t.prefix == MatchTerm.name + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.name
         assert t.text == scooby
         checkNameNotEqualTerm(t)
 
         t = new MatchTerm("!  name= " + scooby)
-        assert t.prefix == MatchTerm.name + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.name
         assert t.text == scooby
         checkNameNotEqualTerm(t)
 
         t = new MatchTerm("name!=" + scooby)
-        assert t.prefix == MatchTerm.name + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.name
         assert t.text == scooby
         checkNameNotEqualTerm(t)
 
         t = new MatchTerm("name  !  =  " + scooby)
-        assert t.prefix == MatchTerm.name + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.name
         assert t.text == scooby
         checkNameNotEqualTerm(t)
 
         t = new MatchTerm("name!  =  " + scooby)
-        assert t.prefix == MatchTerm.name + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.name
         assert t.text == scooby
         checkNameNotEqualTerm(t)
 
         t = new MatchTerm("na!me =  " + scooby)
-        assert t.prefix == MatchTerm.name + MatchTerm.EQUALS
+        assert t.prefix == MatchTerm.name
         assert t.text == scooby
         checkNameNotEqualTerm(t)
     }
