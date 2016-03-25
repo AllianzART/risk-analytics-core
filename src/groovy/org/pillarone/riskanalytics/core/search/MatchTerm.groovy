@@ -135,7 +135,7 @@ class MatchTerm  {
 
     private  Boolean isAcceptorObj = null
     private  Boolean isRejectorObj = null
-    private  Boolean isEqualsObj = null
+    private  Boolean isEqualsObj   = null
     private  Boolean isNotEqualsObj= null
 
     private void initBasePredicates(){
@@ -261,6 +261,26 @@ class MatchTerm  {
         }
     }
 
+    boolean isNameMatcher       = false
+    boolean isStateMatcher      = false
+    boolean isOwnerMatcher      = false
+    boolean isTagMatcher        = false
+    boolean isDbIdMatcher       = false
+    boolean isDealNameMatcher   = false
+    boolean isDealIdMatcher     = false
+    boolean isDealTagMatcher    = false
+
+    private void setClassifiers(){
+        isNameMatcher  =  isNameAcceptor || isNameRejector || isNameEqualsOp || isNameNotEqualsOp 
+        isStateMatcher = isStateAcceptor || isStateRejector || isStateEqualsOp || isStateNotEqualsOp 
+        isOwnerMatcher = isOwnerAcceptor || isOwnerRejector || isOwnerEqualsOp || isOwnerNotEqualsOp 
+        isTagMatcher   = isTagAcceptor || isTagRejector || isTagEqualsOp || isTagNotEqualsOp 
+        isDbIdMatcher  = isDbIdAcceptor || isDbIdRejector || isDbIdEqualsOp || isDbIdNotEqualsOp
+        isDealIdMatcher= isDealIdAcceptor || isDealIdRejector || isDealIdEqualsOp || isDealIdNotEqualsOp
+        isDealNameMatcher = isDealNameAcceptor || isDealNameRejector || isDealNameEqualsOp || isDealNameNotEqualsOp
+        isDealTagMatcher = isDealTagAcceptor || isDealTagRejector || isDealTagEqualsOp || isDealTagNotEqualsOp
+    }
+
     // In the ctor we :
     // Note presence of any [!:=] directives within term
     // Note any recognised prefix
@@ -271,6 +291,10 @@ class MatchTerm  {
     // when items are matched
     //
     MatchTerm(String term){
+        long t;
+        if (CacheItemSearchService.PROFILE_CACHE_FILTERING) {
+            t = System.currentTimeMillis()
+        }
 
         original    = term
         colonIndex  = term.indexOf(COLON);
@@ -336,7 +360,6 @@ class MatchTerm  {
                 text = (colonIndex != MISSING)  ? term.substring(colonIndex+1).trim()
                                                 : term.substring(equalsIndex+1).trim()
                                                 ;
-                boolean debugMe = false;
             }
         }
         initBasePredicates()                       // we're done here
@@ -344,6 +367,13 @@ class MatchTerm  {
         initRejectorPredicates()
         initEqualsPredicates()
         initNotEqualsPredicates()
+        setClassifiers()
+
+        if (CacheItemSearchService.PROFILE_CACHE_FILTERING) {
+            t = System.currentTimeMillis() - t
+            LOG.info("Timed " + t + " ms: Parsing '$original'");
+        }
+
     }
 
 }
