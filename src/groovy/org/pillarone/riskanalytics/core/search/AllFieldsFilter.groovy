@@ -213,7 +213,7 @@ class AllFieldsFilter implements ISearchFilter {
     private static boolean internalAccept(SimulationCacheItem sim, MatchTerm[] matchTerms) {
         return FilterHelp.matchTags(sim, matchTerms) ||
                 matchTerms.any {
-                    it.isNameAcceptor() &&
+                    it.isNameAcceptor &&
                     (
                         StringUtils.containsIgnoreCase(sim.parameterization?.nameAndVersion, it.text) ||
                         StringUtils.containsIgnoreCase(sim.resultConfiguration?.nameAndVersion, it.text)
@@ -225,16 +225,16 @@ class AllFieldsFilter implements ISearchFilter {
                     matchSimulationResultsOnDealId && FilterHelp.matchDeal(sim.parameterization, matchTerms, getTransactions())
                 ) ||
                 matchTerms.any {
-                    (it.isSeedEqualsOp()    &&  StringUtils.equals(""+sim.randomSeed, it.text))   ||
-                    (it.isSeedNotEqualsOp() && !StringUtils.equals(""+sim.randomSeed, it.text))   ||
-                    (it.isSeedAcceptor()    &&  StringUtils.contains(""+sim.randomSeed, it.text)) ||
-                    (it.isSeedRejector()    && !StringUtils.contains(""+sim.randomSeed, it.text))
+                    (it.isSeedEqualsOp    &&  StringUtils.equals(""+sim.randomSeed, it.text))   ||
+                    (it.isSeedNotEqualsOp && !StringUtils.equals(""+sim.randomSeed, it.text))   ||
+                    (it.isSeedAcceptor    &&  StringUtils.contains(""+sim.randomSeed, it.text)) ||
+                    (it.isSeedRejector    && !StringUtils.contains(""+sim.randomSeed, it.text))
                 } ||
                 matchTerms.any {
-                    (it.isIterationsEqualsOp()    &&  StringUtils.equals(""+sim.numberOfIterations,   it.text)) ||
-                    (it.isIterationsNotEqualsOp() && !StringUtils.equals(""+sim.numberOfIterations,   it.text)) ||
-                    (it.isIterationsAcceptor()    &&  StringUtils.contains(""+sim.numberOfIterations, it.text)) ||
-                    (it.isIterationsRejector()    && !StringUtils.contains(""+sim.numberOfIterations, it.text))
+                    (it.isIterationsEqualsOp    &&  StringUtils.equals(""+sim.numberOfIterations,   it.text)) ||
+                    (it.isIterationsNotEqualsOp && !StringUtils.equals(""+sim.numberOfIterations,   it.text)) ||
+                    (it.isIterationsAcceptor    &&  StringUtils.contains(""+sim.numberOfIterations, it.text)) ||
+                    (it.isIterationsRejector    && !StringUtils.contains(""+sim.numberOfIterations, it.text))
                 } ||
                 (
                     //Can disable this to check performance impact..
@@ -285,10 +285,10 @@ class AllFieldsFilter implements ISearchFilter {
             final String itemName = item.name
             final String itemNameAndVersion = item.nameAndVersion
             return matchTerms.any {
-                  it.isNameAcceptor()    ?  StringUtils.containsIgnoreCase(itemNameAndVersion, it.text)
-                : it.isNameRejector()    ? !StringUtils.containsIgnoreCase(itemNameAndVersion, it.text)
-                : it.isNameEqualsOp()    ?  StringUtils.equalsIgnoreCase(itemName, it.text)
-                : it.isNameNotEqualsOp() ? !StringUtils.equalsIgnoreCase(itemName, it.text)
+                  it.isNameAcceptor    ?  StringUtils.containsIgnoreCase(itemNameAndVersion, it.text)
+                : it.isNameRejector    ? !StringUtils.containsIgnoreCase(itemNameAndVersion, it.text)
+                : it.isNameEqualsOp    ?  StringUtils.equalsIgnoreCase(itemName, it.text)
+                : it.isNameNotEqualsOp ? !StringUtils.equalsIgnoreCase(itemName, it.text)
                 : false
             };
         }
@@ -296,10 +296,10 @@ class AllFieldsFilter implements ISearchFilter {
         static boolean matchOwner(CacheItem item, final MatchTerm[] matchTerms) {
             final String username = item.creator?.username
             return matchTerms.any {
-                  it.isOwnerAcceptor()      ?  StringUtils.containsIgnoreCase(username, it.text)
-                : it.isOwnerRejector()      ? !StringUtils.containsIgnoreCase(username, it.text)
-                : it.isOwnerEqualsOp()      ?  StringUtils.equalsIgnoreCase(username, it.text)
-                : it.isOwnerNotEqualsOp()   ? !StringUtils.equalsIgnoreCase(username, it.text)
+                  it.isOwnerAcceptor      ?  StringUtils.containsIgnoreCase(username, it.text)
+                : it.isOwnerRejector      ? !StringUtils.containsIgnoreCase(username, it.text)
+                : it.isOwnerEqualsOp      ?  StringUtils.equalsIgnoreCase(username, it.text)
+                : it.isOwnerNotEqualsOp   ? !StringUtils.equalsIgnoreCase(username, it.text)
                 : false
             };
         }
@@ -307,10 +307,10 @@ class AllFieldsFilter implements ISearchFilter {
         static boolean matchDbId(CacheItem item, final MatchTerm[] matchTerms) {
             final String itemId = ""+item?.id
             matchTerms.any {
-                  it.isDbIdAcceptor()    ?  containsAnyCsvElement(itemId, it.text )  // allow listing many
-                : it.isDbIdRejector()    ? !StringUtils.containsIgnoreCase(itemId, it.text)
-                : it.isDbIdEqualsOp()    ?  equalsAnyCsvElement(itemId, it.text )    // allow listing many
-                : it.isDbIdNotEqualsOp() ? !StringUtils.equalsIgnoreCase(itemId, it.text)
+                  it.isDbIdAcceptor    ?  containsAnyCsvElement(itemId, it.text )  // allow listing many
+                : it.isDbIdRejector    ? !StringUtils.containsIgnoreCase(itemId, it.text)
+                : it.isDbIdEqualsOp    ?  equalsAnyCsvElement(itemId, it.text )    // allow listing many
+                : it.isDbIdNotEqualsOp ? !StringUtils.equalsIgnoreCase(itemId, it.text)
                 : false
             }
         }
@@ -329,10 +329,10 @@ class AllFieldsFilter implements ISearchFilter {
         static boolean matchState(final ParameterizationCacheItem p14n, final MatchTerm[] matchTerms) {
             final String p14nStatus =  p14n.status?.toString()
             return matchTerms.any {
-                    it.isStateAcceptor()    ?  StringUtils.containsIgnoreCase(p14nStatus,  it.text)
-                  : it.isStateRejector()    ? !StringUtils.containsIgnoreCase(p14nStatus, it.text)
-                  : it.isStateEqualsOp()    ?  StringUtils.equalsIgnoreCase(p14nStatus, it.text)
-                  : it.isStateNotEqualsOp() ? !StringUtils.equalsIgnoreCase(p14nStatus, it.text)
+                    it.isStateAcceptor    ?  StringUtils.containsIgnoreCase(p14nStatus,  it.text)
+                  : it.isStateRejector    ? !StringUtils.containsIgnoreCase(p14nStatus, it.text)
+                  : it.isStateEqualsOp    ?  StringUtils.equalsIgnoreCase(p14nStatus, it.text)
+                  : it.isStateNotEqualsOp ? !StringUtils.equalsIgnoreCase(p14nStatus, it.text)
                 : false
             };
         }
@@ -341,14 +341,14 @@ class AllFieldsFilter implements ISearchFilter {
             final String dealId = p14n?.dealId?.toString()
             // nb don't identify dealname unless we need it
             return matchTerms.any {
-                  it.isDealIdAcceptor()      ?  containsAnyCsvElement(dealId, it.text ) //can use list
-                : it.isDealIdEqualsOp()      ?  equalsAnyCsvElement(dealId, it.text )   //can use list
-                : it.isDealIdRejector()      ? !StringUtils.containsIgnoreCase(dealId, it.text)
-                : it.isDealIdNotEqualsOp()   ? !StringUtils.equalsIgnoreCase(dealId, it.text)
-                : it.isDealNameAcceptor()    ?  StringUtils.containsIgnoreCase(getDealName(p14n,txInfos), it.text)
-                : it.isDealNameEqualsOp()    ?  StringUtils.equalsIgnoreCase(getDealName(p14n,txInfos), it.text)
-                : it.isDealNameRejector()    ? !StringUtils.containsIgnoreCase(getDealName(p14n,txInfos), it.text)
-                : it.isDealNameNotEqualsOp() ? !StringUtils.equalsIgnoreCase(getDealName(p14n,txInfos), it.text)
+                  it.isDealIdAcceptor      ?  containsAnyCsvElement(dealId, it.text ) //can use list
+                : it.isDealIdEqualsOp      ?  equalsAnyCsvElement(dealId, it.text )   //can use list
+                : it.isDealIdRejector      ? !StringUtils.containsIgnoreCase(dealId, it.text)
+                : it.isDealIdNotEqualsOp   ? !StringUtils.equalsIgnoreCase(dealId, it.text)
+                : it.isDealNameAcceptor    ?  StringUtils.containsIgnoreCase(getDealName(p14n,txInfos), it.text)
+                : it.isDealNameEqualsOp    ?  StringUtils.equalsIgnoreCase(getDealName(p14n,txInfos), it.text)
+                : it.isDealNameRejector    ? !StringUtils.containsIgnoreCase(getDealName(p14n,txInfos), it.text)
+                : it.isDealNameNotEqualsOp ? !StringUtils.equalsIgnoreCase(getDealName(p14n,txInfos), it.text)
                 : false
             };
         }
@@ -361,10 +361,10 @@ class AllFieldsFilter implements ISearchFilter {
         static boolean matchDealTags(final ParameterizationCacheItem item, final MatchTerm[] matchTerms) {
 
             return (0 < item?.dealId )  &&  matchTerms.any {
-                  it.isDealTagAcceptor()    ?  dealContainsTagLike( item, it.text)
-                : it.isDealTagEqualsOp()    ?  dealContainsTagExact(item, it.text)
-                : it.isDealTagRejector()    ? !dealContainsTagLike( item, it.text)
-                : it.isDealTagNotEqualsOp() ? !dealContainsTagExact(item, it.text)
+                  it.isDealTagAcceptor    ?  dealContainsTagLike( item, it.text)
+                : it.isDealTagEqualsOp    ?  dealContainsTagExact(item, it.text)
+                : it.isDealTagRejector    ? !dealContainsTagLike( item, it.text)
+                : it.isDealTagNotEqualsOp ? !dealContainsTagExact(item, it.text)
                 : false
             };
         }
@@ -418,19 +418,19 @@ class AllFieldsFilter implements ISearchFilter {
         private static boolean matchTags(final def item, final MatchTerm[] matchTerms) {
             final def tagNames = item.tags*.name
             return matchTerms.any { def it ->
-                if (it.isTagAcceptor()) {
+                if (it.isTagAcceptor) {
                     //e.g. term 'tag:Q4 2013' will match any sim or pn tagged 'Q4 2013' (but also eg 'Q4 2013 ReRun')
                     tagNames.any { String tag -> StringUtils.containsIgnoreCase(tag, it.text) }
                 }
-                else if (it.isTagRejector()){
+                else if (it.isTagRejector){
                     //e.g. term '!tag:Q4 2013' will match any sim or pn tagged 'H2 2013' (but not 'Q4 2013 ReRun')
                     !tagNames.any { String tag -> StringUtils.containsIgnoreCase(tag, it.text) }
                 }
-                else if (it.isTagEqualsOp()) {
+                else if (it.isTagEqualsOp) {
                     //e.g. term 'tag=Q4 2013' will match any sim or pn tagged 'Q4 2013' (but not eg 'Q4 2013 ReRun')
                     tagNames.any { String tag -> StringUtils.equalsIgnoreCase(tag, it.text) }
                 }
-                else if (it.isTagNotEqualsOp()) {
+                else if (it.isTagNotEqualsOp) {
                     //e.g. term '!tag = Q4 2013' will match any sim or pn tagged 'Q1 2015' (but also eg 'Q4 2013 ReRun')
                     !tagNames.any { String tag -> StringUtils.equalsIgnoreCase(tag, it.text) }
                 }

@@ -1,9 +1,11 @@
 package org.pillarone.riskanalytics.core.search
 
-import org.apache.commons.lang.StringUtils
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 import org.pillarone.riskanalytics.core.modellingitem.ParameterizationCacheItem
+
+import static java.lang.Boolean.FALSE
+import static java.lang.Boolean.TRUE
 
 /**
  * Created with IntelliJ IDEA.
@@ -85,14 +87,188 @@ class MatchTerm  {
     final String original;
     final String prefix;
     final String text;
-    final int bangIndex;
-    final int colonIndex;
-    final int equalsIndex;
+    int bangIndex;
+    int colonIndex;
+    int equalsIndex;
+
+    boolean isDealIdAcceptor         =false
+    boolean isDealNameAcceptor       =false
+    boolean isDealTagAcceptor        =false
+    boolean isNameAcceptor           =false
+    boolean isOwnerAcceptor          =false
+    boolean isStateAcceptor          =false
+    boolean isTagAcceptor            =false
+    boolean isSeedAcceptor           =false
+    boolean isDbIdAcceptor           =false
+    boolean isIterationsAcceptor     =false
+    boolean isDealIdRejector         =false
+    boolean isDealNameRejector       =false
+    boolean isDealTagRejector        =false
+    boolean isNameRejector           =false
+    boolean isOwnerRejector          =false
+    boolean isStateRejector          =false
+    boolean isTagRejector            =false
+    boolean isSeedRejector           =false
+    boolean isDbIdRejector           =false
+    boolean isIterationsRejector     =false
+    boolean isDealIdEqualsOp         =false
+    boolean isDealNameEqualsOp       =false
+    boolean isDealTagEqualsOp        =false
+    boolean isNameEqualsOp           =false
+    boolean isOwnerEqualsOp          =false
+    boolean isStateEqualsOp          =false
+    boolean isTagEqualsOp            =false
+    boolean isSeedEqualsOp           =false
+    boolean isDbIdEqualsOp           =false
+    boolean isIterationsEqualsOp     =false
+    boolean isDealIdNotEqualsOp      =false
+    boolean isDealNameNotEqualsOp    =false
+    boolean isDealTagNotEqualsOp     =false
+    boolean isNameNotEqualsOp        =false
+    boolean isOwnerNotEqualsOp       =false
+    boolean isStateNotEqualsOp       =false
+    boolean isTagNotEqualsOp         =false
+    boolean isSeedNotEqualsOp        =false
+    boolean isDbIdNotEqualsOp        =false
+    boolean isIterationsNotEqualsOp  =false
+
+
+    private  Boolean isAcceptorObj = null
+    private  Boolean isRejectorObj = null
+    private  Boolean isEqualsObj = null
+    private  Boolean isNotEqualsObj= null
+
+    private void initBasePredicates(){
+
+        if(isAcceptorObj == null){
+            isAcceptorObj = (
+                bangIndex   != MISSING ||
+                equalsIndex != MISSING
+            ) ? FALSE
+              : TRUE
+        }
+
+        if(isRejectorObj == null){
+            isRejectorObj = (
+                bangIndex   == MISSING ||
+                equalsIndex != MISSING
+            ) ? FALSE
+              : TRUE
+        }
+
+        if(isEqualsObj == null){
+            isEqualsObj = (
+                bangIndex   != MISSING ||
+                equalsIndex == MISSING
+            ) ? FALSE
+              : TRUE
+        }
+
+        if(isNotEqualsObj == null){
+            isNotEqualsObj = (
+                bangIndex   == MISSING ||
+                equalsIndex == MISSING
+            ) ? FALSE
+              : TRUE
+        }
+    }
+
+    private void setBangMissing(){
+        bangIndex = MISSING
+        isRejectorObj = FALSE
+        isNotEqualsObj = FALSE
+    }
+    private void knowBangPresent(){
+        isEqualsObj = FALSE
+        isAcceptorObj = FALSE
+    }
+    private void setEqualsMissing(){
+        equalsIndex = MISSING
+        isEqualsObj = FALSE
+        isNotEqualsObj = FALSE
+    }
+    private void knowEqualsPresent(){
+        isAcceptorObj = FALSE
+        isRejectorObj = FALSE
+    }
+
+    private void initAcceptorPredicates(){
+
+        if(isAcceptorObj == null){
+            throw new IllegalStateException("initAcceptorPredicates called before isAcceptorObj set..")
+        } else if(isAcceptorObj == TRUE){
+            isDbIdAcceptor       = prefix == dbId
+            isDealIdAcceptor     = [nonePrefix, dealIdShort, dealId].any { prefix == it }
+            isDealNameAcceptor   = [dealNameShort, dealName].any { prefix == it }
+            isDealTagAcceptor    = [dealTagShort, dealTag].any { prefix == it }
+            isIterationsAcceptor = [iterationsShort, iterations].any { prefix == it }
+            isNameAcceptor       = [nonePrefix, nameShort, name].any { prefix == it }
+            isOwnerAcceptor      = [nonePrefix, ownerShort, owner].any { prefix == it }
+            isSeedAcceptor       = prefix == seed
+            isStateAcceptor      = [nonePrefix, stateShort, state].any { prefix == it }
+            isTagAcceptor        = [nonePrefix, tagShort, tag].any { prefix == it }
+        }
+    }
+    private void initRejectorPredicates(){
+
+        if(isRejectorObj == null){
+            throw new IllegalStateException("initRejectorPredicates called before isRejectorObj set..")
+        } else if(isRejectorObj == TRUE){
+            isDbIdRejector      = [dbId].any { prefix == it }
+            isDealIdRejector    = [dealIdShort, dealId].any { prefix == it }
+            isDealNameRejector  = [dealNameShort, dealName].any { prefix == it }
+            isDealTagRejector   = [dealTagShort, dealTag].any { prefix == it }
+            isIterationsRejector =[iterationsShort, iterations].any { prefix == it }
+            isNameRejector      = [nameShort, name].any { prefix == it }
+            isOwnerRejector     = [ownerShort, owner].any { prefix == it }
+            isSeedRejector      = [seed].any { prefix == it }
+            isStateRejector     = [stateShort, state].any { prefix == it }
+            isTagRejector       = [tagShort, tag].any { prefix == it }
+        }
+    }
+    private void initEqualsPredicates(){
+
+        if(isEqualsObj == null){
+            throw new IllegalStateException("initEqualsPredicates called before isEqualsObj set..")
+        } else if(isEqualsObj == TRUE){
+            isDbIdEqualsOp      = [dbId].any { prefix == it }
+            isDealIdEqualsOp    = [dealIdShort, dealId].any { prefix == it }
+            isDealNameEqualsOp  = [dealNameShort, dealName].any { prefix == it }
+            isDealTagEqualsOp   = [dealTagShort, dealTag].any { prefix == it }
+            isIterationsEqualsOp =[iterationsShort, iterations].any { prefix == it }
+            isNameEqualsOp      = [nameShort, name].any { prefix == it }
+            isOwnerEqualsOp     = [ownerShort, owner].any { prefix == it }
+            isSeedEqualsOp      = [seed].any { prefix == it }
+            isStateEqualsOp     = [stateShort, state].any { prefix == it }
+            isTagEqualsOp       = [tagShort, tag].any { prefix == it }
+        }
+    }
+    private void initNotEqualsPredicates(){
+
+        if(isNotEqualsObj == null){
+            throw new IllegalStateException("initNotEqualsPredicates called before isNotEqualsObj set..")
+        } else if(isNotEqualsObj == TRUE){
+            isDealIdNotEqualsOp     = [dealIdShort, dealId].any { prefix == it }
+            isDealNameNotEqualsOp   = [dealNameShort, dealName].any { prefix == it }
+            isDealTagNotEqualsOp    = [dealTagShort, dealTag].any { prefix == it }
+            isNameNotEqualsOp       = [nameShort, name].any { prefix == it }
+            isOwnerNotEqualsOp      = [ownerShort, owner].any { prefix == it }
+            isStateNotEqualsOp      = [stateShort, state].any { prefix == it }
+            isTagNotEqualsOp        = [tagShort, tag].any { prefix == it }
+            isSeedNotEqualsOp       = [seed].any { prefix == it }
+            isDbIdNotEqualsOp       = [dbId].any { prefix == it }
+            isIterationsNotEqualsOp = [iterationsShort, iterations].any { prefix == it }
+        }
+    }
 
     // In the ctor we :
     // Note presence of any [!:=] directives within term
     // Note any recognised prefix
     // Note the text value to be matched against modeling items
+    //
+    // Additionally to squeeze the last drops of performance out we set various predicates
+    // as soon as we are in a position to decide, here in the ctor, to save repeated checks
+    // when items are matched
     //
     MatchTerm(String term){
 
@@ -106,9 +282,10 @@ class MatchTerm  {
         if( (colonIndex != MISSING && equalsIndex != MISSING)  ) {
             LOG.info("Analysing: '${term}' has both colon AND equals")
             if(colonIndex < equalsIndex){
-                equalsIndex = MISSING
+                setEqualsMissing()
             }else if(equalsIndex < colonIndex){
                 colonIndex = MISSING
+                knowEqualsPresent()
             }else{
                 String e = "Insanity! colonIndex = equalsIndex (=$colonIndex)"
                 LOG.error(e)
@@ -117,10 +294,10 @@ class MatchTerm  {
         }
 
         if( (colonIndex == MISSING && equalsIndex == MISSING)  ) { // not a column-specific term
-            bangIndex = MISSING                 // no prefix - ensure any bang in term not treated as a negation
+            setBangMissing()                        // no prefix - ensure any bang in term not treated as a negation
+            setEqualsMissing()                      // set any sure predicates
             prefix = nonePrefix;
             text = term;
-            int debugMe = 0;
         }else{
             //
             //
@@ -128,7 +305,7 @@ class MatchTerm  {
             if(bangIndex != MISSING){
                 if(  (colonIndex != MISSING  &&  colonIndex  < bangIndex) ||    // : precedes !
                      (equalsIndex != MISSING &&  equalsIndex < bangIndex)    ){ // = precedes !
-                    bangIndex = MISSING          // not part of prefix - ensure bang not treated as a negation
+                    setBangMissing()                // no prefix - ensure any bang in term not treated as a negation
                 }
             }
 
@@ -139,6 +316,8 @@ class MatchTerm  {
                                                     ;
             String squished = found.replaceAll("\\s*",'');
             if(bangIndex != MISSING){
+                knowBangPresent()                // set any sure predicates
+
                 //Remove the ! before trying to lookup a recognised prefix
                 //
                 squished = squished.replace(FILTER_NEGATION,'');
@@ -148,6 +327,8 @@ class MatchTerm  {
 
             if( !lookup ){
                 LOG.info("Weird match term: '${term}' - UNKNOWN PREFIX '$found' - treat as lacking prefix")
+                setBangMissing()                        // no prefix - ensure any bang in term not treated as a negation
+                setEqualsMissing()                      // set any sure predicates
                 prefix = nonePrefix;
                 text = term
             }else{
@@ -158,225 +339,12 @@ class MatchTerm  {
                 boolean debugMe = false;
             }
         }
-
+        initBasePredicates()                       // we're done here
+        initAcceptorPredicates()
+        initRejectorPredicates()
+        initEqualsPredicates()
+        initNotEqualsPredicates()
     }
 
-    //Acceptor terms either have no prefix or prefix matches the column in question and ends in ':'
-    //
-    private boolean isAcceptor(final ArrayList<String> values) {
-        if (bangIndex != MISSING) {
-            return false
-        }
-        if (equalsIndex != MISSING){ // checking for = here is not a mistake
-            return false
-        }
-        return values.any { prefix == it } // isAcceptor special (could be fed nonePrefix)
-    }
-
-    // Rejector terms begin with "!", match the column in question, and end in ':'
-    //
-    private boolean isRejector(final ArrayList<String> values) {
-        if (bangIndex == MISSING) {
-            return false
-        }
-        if (equalsIndex != MISSING){ // checking for equalsIndex here is not a mistake
-            return false
-        }
-        return values.any { prefix == it }
-    }
-
-    //EqualsOp terms have prefix matches a column in question and ends in '='
-    //
-    private boolean isEqualsOp(final ArrayList<String> values) {
-        if (bangIndex != MISSING) {
-            return false
-        }
-        if (equalsIndex == MISSING){
-            return false
-        }
-        return values.any { prefix == it }
-    }
-
-    // Not-equals terms contain "!", match the column in question, and end in '='
-    //
-    private boolean isNotEqualsOp(final ArrayList<String> values) {
-        if (bangIndex == MISSING) {
-            return false
-        }
-        if (equalsIndex == MISSING){
-            return false
-        }
-        return values.any { prefix == it}
-    }
-
-    boolean isDealIdAcceptor() {
-        isAcceptor( [nonePrefix, dealIdShort, dealId] )
-    }
-
-    boolean isDealNameAcceptor() {
-        isAcceptor( [dealNameShort, dealName] )
-    }
-
-    boolean isDealTagAcceptor() {
-        // don't include nonePrefix here
-        // else serach terms not prefixed with 'dealtag' / 'dt' will trigger deal tag search
-        //
-        isAcceptor( [dealTagShort, dealTag] )
-    }
-
-    boolean isNameAcceptor() {
-        isAcceptor( [nonePrefix, nameShort, name] )
-    }
-
-    boolean isOwnerAcceptor() {
-        isAcceptor( [nonePrefix, ownerShort, owner] )
-    }
-
-    boolean isStateAcceptor() {
-        isAcceptor( [nonePrefix, stateShort, state] )
-    }
-
-    boolean isTagAcceptor() {
-        isAcceptor( [nonePrefix, tagShort, tag] )
-    }
-
-    boolean isSeedAcceptor() {
-        isAcceptor( [seed] )
-    }
-
-    boolean isDbIdAcceptor() {
-        isAcceptor( [dbId] )
-    }
-
-    boolean isIterationsAcceptor() {
-        isAcceptor( [iterationsShort, iterations] )
-    }
-
-//================= REJECTORS ==========================
-
-    boolean isDealIdRejector() {
-        isRejector( [dealIdShort, dealId] )
-    }
-
-    boolean isDealNameRejector() {
-        isRejector( [dealNameShort, dealName] )
-    }
-
-    boolean isDealTagRejector() {
-        isRejector( [dealTagShort, dealTag] )
-    }
-
-    boolean isNameRejector() {
-        isRejector( [nameShort, name] )
-    }
-
-    boolean isOwnerRejector() {
-        isRejector( [ownerShort, owner] )
-    }
-
-    boolean isStateRejector() {
-        isRejector( [stateShort, state] )
-    }
-
-    boolean isTagRejector() {
-        isRejector( [tagShort, tag] )
-    }
-
-    boolean isSeedRejector() {
-        isRejector( [seed] )
-    }
-
-    boolean isDbIdRejector() {
-        isRejector( [dbId] )
-    }
-
-    boolean isIterationsRejector() {
-        isRejector( [iterationsShort, iterations] )
-    }
-
-//  ============================================================
-
-    boolean isDealIdEqualsOp() {
-        isEqualsOp( [dealIdShort, dealId] )
-    }
-
-    boolean isDealNameEqualsOp() {
-        isEqualsOp( [dealNameShort, dealName] )
-    }
-
-    boolean isDealTagEqualsOp() {
-        isEqualsOp( [dealTagShort, dealTag] )
-    }
-
-    boolean isNameEqualsOp() {
-        isEqualsOp( [nameShort, name] )
-    }
-
-    boolean isOwnerEqualsOp() {
-        isEqualsOp( [ownerShort, owner] )
-    }
-
-    boolean isStateEqualsOp() {
-        isEqualsOp( [stateShort, state] )
-    }
-
-    boolean isTagEqualsOp() {
-        isEqualsOp( [tagShort, tag] )
-    }
-
-    boolean isSeedEqualsOp() {
-        isEqualsOp( [seed] )
-    }
-
-    boolean isDbIdEqualsOp() {
-        isEqualsOp( [dbId] )
-    }
-
-    boolean isIterationsEqualsOp() {
-        isEqualsOp( [iterationsShort, iterations] )
-    }
-    
-//  ===========================================================
-
-     boolean isDealIdNotEqualsOp() {
-        isNotEqualsOp( [dealIdShort, dealId] )
-    }
-
-     boolean isDealNameNotEqualsOp() {
-        isNotEqualsOp( [dealNameShort, dealName] )
-    }
-
-     boolean isDealTagNotEqualsOp() {
-        isNotEqualsOp( [dealTagShort, dealTag] )
-    }
-
-     boolean isNameNotEqualsOp() {
-        isNotEqualsOp( [nameShort, name] )
-    }
-
-     boolean isOwnerNotEqualsOp() {
-        isNotEqualsOp( [ownerShort, owner] )
-    }
-
-     boolean isStateNotEqualsOp() {
-        isNotEqualsOp( [stateShort, state] )
-    }
-
-     boolean isTagNotEqualsOp() {
-        isNotEqualsOp( [tagShort, tag] )
-    }
-
-     boolean isSeedNotEqualsOp() {
-        isNotEqualsOp( [seed] )
-    }
-
-     boolean isDbIdNotEqualsOp() {
-        isNotEqualsOp( [dbId] )
-    }
-
-     boolean isIterationsNotEqualsOp() {
-        isNotEqualsOp( [iterationsShort, iterations] )
-    }
-    
 }
 

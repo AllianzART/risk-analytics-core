@@ -17,47 +17,47 @@ class MatchTermTests extends GroovyTestCase {
         assert t.bangIndex == MatchTerm.MISSING
         assert t.colonIndex == MatchTerm.MISSING
 
-        assert t.isNameAcceptor()
-        assert t.isTagAcceptor()
-        assert t.isStateAcceptor()
-        assert t.isOwnerAcceptor()
-        assert t.isDealIdAcceptor()
+        assert t.isNameAcceptor
+        assert t.isTagAcceptor
+        assert t.isStateAcceptor
+        assert t.isOwnerAcceptor
+        assert t.isDealIdAcceptor
 
-        assert ! t.isDbIdAcceptor()
-        assert ! t.isDbIdEqualsOp()
-        assert ! t.isDbIdNotEqualsOp()
-        assert ! t.isDbIdRejector()
-        assert ! t.isDealIdEqualsOp()
-        assert ! t.isDealIdNotEqualsOp()
-        assert ! t.isDealIdRejector()
-        assert ! t.isDealNameAcceptor()
-        assert ! t.isDealNameEqualsOp()
-        assert ! t.isDealNameNotEqualsOp()
-        assert ! t.isDealNameRejector()
-        assert ! t.isDealTagAcceptor()
-        assert ! t.isDealTagEqualsOp()
-        assert ! t.isDealTagNotEqualsOp()
-        assert ! t.isDealTagRejector()
-        assert ! t.isIterationsAcceptor()
-        assert ! t.isIterationsEqualsOp()
-        assert ! t.isIterationsNotEqualsOp()
-        assert ! t.isIterationsRejector()
-        assert ! t.isNameEqualsOp()
-        assert ! t.isNameNotEqualsOp()
-        assert ! t.isNameRejector()
-        assert ! t.isOwnerEqualsOp()
-        assert ! t.isOwnerNotEqualsOp()
-        assert ! t.isOwnerRejector()
-        assert ! t.isSeedAcceptor()
-        assert ! t.isSeedEqualsOp()
-        assert ! t.isSeedNotEqualsOp()
-        assert ! t.isSeedRejector()
-        assert ! t.isStateEqualsOp()
-        assert ! t.isStateNotEqualsOp()
-        assert ! t.isStateRejector()
-        assert ! t.isTagEqualsOp()
-        assert ! t.isTagNotEqualsOp()
-        assert ! t.isTagRejector()
+        assert ! t.isDbIdAcceptor
+        assert ! t.isDbIdEqualsOp
+        assert ! t.isDbIdNotEqualsOp
+        assert ! t.isDbIdRejector
+        assert ! t.isDealIdEqualsOp
+        assert ! t.isDealIdNotEqualsOp
+        assert ! t.isDealIdRejector
+        assert ! t.isDealNameAcceptor
+        assert ! t.isDealNameEqualsOp
+        assert ! t.isDealNameNotEqualsOp
+        assert ! t.isDealNameRejector
+        assert ! t.isDealTagAcceptor
+        assert ! t.isDealTagEqualsOp
+        assert ! t.isDealTagNotEqualsOp
+        assert ! t.isDealTagRejector
+        assert ! t.isIterationsAcceptor
+        assert ! t.isIterationsEqualsOp
+        assert ! t.isIterationsNotEqualsOp
+        assert ! t.isIterationsRejector
+        assert ! t.isNameEqualsOp
+        assert ! t.isNameNotEqualsOp
+        assert ! t.isNameRejector
+        assert ! t.isOwnerEqualsOp
+        assert ! t.isOwnerNotEqualsOp
+        assert ! t.isOwnerRejector
+        assert ! t.isSeedAcceptor
+        assert ! t.isSeedEqualsOp
+        assert ! t.isSeedNotEqualsOp
+        assert ! t.isSeedRejector
+        assert ! t.isStateEqualsOp
+        assert ! t.isStateNotEqualsOp
+        assert ! t.isStateRejector
+        assert ! t.isTagEqualsOp
+        assert ! t.isTagNotEqualsOp
+        assert ! t.isTagRejector
     }
 
     void testNameLikeTerm(){
@@ -73,47 +73,47 @@ class MatchTermTests extends GroovyTestCase {
         assert t.bangIndex == MatchTerm.MISSING
         assert t.colonIndex != MatchTerm.MISSING
 
-        assert t.isNameAcceptor()
-        assert !t.isTagAcceptor()
-        assert !t.isStateAcceptor()
-        assert !t.isOwnerAcceptor()
+        assert t.isNameAcceptor
+        assert !t.isTagAcceptor
+        assert !t.isStateAcceptor
+        assert !t.isOwnerAcceptor
 
-        assert ! t.isDbIdAcceptor()
-        assert ! t.isDbIdEqualsOp()
-        assert ! t.isDbIdNotEqualsOp()
-        assert ! t.isDbIdRejector()
-        assert ! t.isDealIdAcceptor()
-        assert ! t.isDealIdEqualsOp()
-        assert ! t.isDealIdNotEqualsOp()
-        assert ! t.isDealIdRejector()
-        assert ! t.isDealNameAcceptor()
-        assert ! t.isDealNameEqualsOp()
-        assert ! t.isDealNameNotEqualsOp()
-        assert ! t.isDealNameRejector()
-        assert ! t.isDealTagAcceptor()
-        assert ! t.isDealTagEqualsOp()
-        assert ! t.isDealTagNotEqualsOp()
-        assert ! t.isDealTagRejector()
-        assert ! t.isIterationsAcceptor()
-        assert ! t.isIterationsEqualsOp()
-        assert ! t.isIterationsNotEqualsOp()
-        assert ! t.isIterationsRejector()
-        assert ! t.isNameEqualsOp()
-        assert ! t.isNameNotEqualsOp()
-        assert ! t.isNameRejector()
-        assert ! t.isOwnerEqualsOp()
-        assert ! t.isOwnerNotEqualsOp()
-        assert ! t.isOwnerRejector()
-        assert ! t.isSeedAcceptor()
-        assert ! t.isSeedEqualsOp()
-        assert ! t.isSeedNotEqualsOp()
-        assert ! t.isSeedRejector()
-        assert ! t.isStateEqualsOp()
-        assert ! t.isStateNotEqualsOp()
-        assert ! t.isStateRejector()
-        assert ! t.isTagEqualsOp()
-        assert ! t.isTagNotEqualsOp()
-        assert ! t.isTagRejector()
+        assert ! t.isDbIdAcceptor
+        assert ! t.isDbIdEqualsOp
+        assert ! t.isDbIdNotEqualsOp
+        assert ! t.isDbIdRejector
+        assert ! t.isDealIdAcceptor
+        assert ! t.isDealIdEqualsOp
+        assert ! t.isDealIdNotEqualsOp
+        assert ! t.isDealIdRejector
+        assert ! t.isDealNameAcceptor
+        assert ! t.isDealNameEqualsOp
+        assert ! t.isDealNameNotEqualsOp
+        assert ! t.isDealNameRejector
+        assert ! t.isDealTagAcceptor
+        assert ! t.isDealTagEqualsOp
+        assert ! t.isDealTagNotEqualsOp
+        assert ! t.isDealTagRejector
+        assert ! t.isIterationsAcceptor
+        assert ! t.isIterationsEqualsOp
+        assert ! t.isIterationsNotEqualsOp
+        assert ! t.isIterationsRejector
+        assert ! t.isNameEqualsOp
+        assert ! t.isNameNotEqualsOp
+        assert ! t.isNameRejector
+        assert ! t.isOwnerEqualsOp
+        assert ! t.isOwnerNotEqualsOp
+        assert ! t.isOwnerRejector
+        assert ! t.isSeedAcceptor
+        assert ! t.isSeedEqualsOp
+        assert ! t.isSeedNotEqualsOp
+        assert ! t.isSeedRejector
+        assert ! t.isStateEqualsOp
+        assert ! t.isStateNotEqualsOp
+        assert ! t.isStateRejector
+        assert ! t.isTagEqualsOp
+        assert ! t.isTagNotEqualsOp
+        assert ! t.isTagRejector
 
     }
 
@@ -156,48 +156,48 @@ class MatchTermTests extends GroovyTestCase {
         assert t.bangIndex != MatchTerm.MISSING
         assert t.colonIndex != MatchTerm.MISSING
 
-        assert  t.isNameRejector()
+        assert  t.isNameRejector
 
-        assert !t.isNameAcceptor()
-        assert !t.isTagAcceptor()
-        assert !t.isStateAcceptor()
-        assert !t.isOwnerAcceptor()
+        assert !t.isNameAcceptor
+        assert !t.isTagAcceptor
+        assert !t.isStateAcceptor
+        assert !t.isOwnerAcceptor
 
-        assert ! t.isDbIdAcceptor()
-        assert ! t.isDbIdEqualsOp()
-        assert ! t.isDbIdNotEqualsOp()
-        assert ! t.isDbIdRejector()
-        assert ! t.isDealIdAcceptor()
-        assert ! t.isDealIdEqualsOp()
-        assert ! t.isDealIdNotEqualsOp()
-        assert ! t.isDealIdRejector()
-        assert ! t.isDealNameAcceptor()
-        assert ! t.isDealNameEqualsOp()
-        assert ! t.isDealNameNotEqualsOp()
-        assert ! t.isDealNameRejector()
-        assert ! t.isDealTagAcceptor()
-        assert ! t.isDealTagEqualsOp()
-        assert ! t.isDealTagNotEqualsOp()
-        assert ! t.isDealTagRejector()
-        assert ! t.isIterationsAcceptor()
-        assert ! t.isIterationsEqualsOp()
-        assert ! t.isIterationsNotEqualsOp()
-        assert ! t.isIterationsRejector()
-        assert ! t.isNameEqualsOp()
-        assert ! t.isNameNotEqualsOp()
-        assert ! t.isOwnerEqualsOp()
-        assert ! t.isOwnerNotEqualsOp()
-        assert ! t.isOwnerRejector()
-        assert ! t.isSeedAcceptor()
-        assert ! t.isSeedEqualsOp()
-        assert ! t.isSeedNotEqualsOp()
-        assert ! t.isSeedRejector()
-        assert ! t.isStateEqualsOp()
-        assert ! t.isStateNotEqualsOp()
-        assert ! t.isStateRejector()
-        assert ! t.isTagEqualsOp()
-        assert ! t.isTagNotEqualsOp()
-        assert ! t.isTagRejector()
+        assert ! t.isDbIdAcceptor
+        assert ! t.isDbIdEqualsOp
+        assert ! t.isDbIdNotEqualsOp
+        assert ! t.isDbIdRejector
+        assert ! t.isDealIdAcceptor
+        assert ! t.isDealIdEqualsOp
+        assert ! t.isDealIdNotEqualsOp
+        assert ! t.isDealIdRejector
+        assert ! t.isDealNameAcceptor
+        assert ! t.isDealNameEqualsOp
+        assert ! t.isDealNameNotEqualsOp
+        assert ! t.isDealNameRejector
+        assert ! t.isDealTagAcceptor
+        assert ! t.isDealTagEqualsOp
+        assert ! t.isDealTagNotEqualsOp
+        assert ! t.isDealTagRejector
+        assert ! t.isIterationsAcceptor
+        assert ! t.isIterationsEqualsOp
+        assert ! t.isIterationsNotEqualsOp
+        assert ! t.isIterationsRejector
+        assert ! t.isNameEqualsOp
+        assert ! t.isNameNotEqualsOp
+        assert ! t.isOwnerEqualsOp
+        assert ! t.isOwnerNotEqualsOp
+        assert ! t.isOwnerRejector
+        assert ! t.isSeedAcceptor
+        assert ! t.isSeedEqualsOp
+        assert ! t.isSeedNotEqualsOp
+        assert ! t.isSeedRejector
+        assert ! t.isStateEqualsOp
+        assert ! t.isStateNotEqualsOp
+        assert ! t.isStateRejector
+        assert ! t.isTagEqualsOp
+        assert ! t.isTagNotEqualsOp
+        assert ! t.isTagRejector
     }
 
     void testNameEqualsTerm(){
@@ -218,47 +218,47 @@ class MatchTermTests extends GroovyTestCase {
         assert t.bangIndex == MatchTerm.MISSING
         assert t.colonIndex == MatchTerm.MISSING
 
-        assert !t.isTagAcceptor()
-        assert !t.isStateAcceptor()
-        assert !t.isOwnerAcceptor()
+        assert !t.isTagAcceptor
+        assert !t.isStateAcceptor
+        assert !t.isOwnerAcceptor
 
-        assert ! t.isDbIdAcceptor()
-        assert ! t.isDbIdEqualsOp()
-        assert ! t.isDbIdNotEqualsOp()
-        assert ! t.isDbIdRejector()
-        assert ! t.isDealIdAcceptor()
-        assert ! t.isDealIdEqualsOp()
-        assert ! t.isDealIdNotEqualsOp()
-        assert ! t.isDealIdRejector()
-        assert ! t.isDealNameAcceptor()
-        assert ! t.isDealNameEqualsOp()
-        assert ! t.isDealNameNotEqualsOp()
-        assert ! t.isDealNameRejector()
-        assert ! t.isDealTagAcceptor()
-        assert ! t.isDealTagEqualsOp()
-        assert ! t.isDealTagNotEqualsOp()
-        assert ! t.isDealTagRejector()
-        assert ! t.isIterationsAcceptor()
-        assert ! t.isIterationsEqualsOp()
-        assert ! t.isIterationsNotEqualsOp()
-        assert ! t.isIterationsRejector()
-        assert ! t.isNameAcceptor()
-        assert ! t.isNameRejector()
-        assert t.isNameEqualsOp()
-        assert ! t.isNameNotEqualsOp()
-        assert ! t.isOwnerEqualsOp()
-        assert ! t.isOwnerNotEqualsOp()
-        assert ! t.isOwnerRejector()
-        assert ! t.isSeedAcceptor()
-        assert ! t.isSeedEqualsOp()
-        assert ! t.isSeedNotEqualsOp()
-        assert ! t.isSeedRejector()
-        assert ! t.isStateEqualsOp()
-        assert ! t.isStateNotEqualsOp()
-        assert ! t.isStateRejector()
-        assert ! t.isTagEqualsOp()
-        assert ! t.isTagNotEqualsOp()
-        assert ! t.isTagRejector()
+        assert ! t.isDbIdAcceptor
+        assert ! t.isDbIdEqualsOp
+        assert ! t.isDbIdNotEqualsOp
+        assert ! t.isDbIdRejector
+        assert ! t.isDealIdAcceptor
+        assert ! t.isDealIdEqualsOp
+        assert ! t.isDealIdNotEqualsOp
+        assert ! t.isDealIdRejector
+        assert ! t.isDealNameAcceptor
+        assert ! t.isDealNameEqualsOp
+        assert ! t.isDealNameNotEqualsOp
+        assert ! t.isDealNameRejector
+        assert ! t.isDealTagAcceptor
+        assert ! t.isDealTagEqualsOp
+        assert ! t.isDealTagNotEqualsOp
+        assert ! t.isDealTagRejector
+        assert ! t.isIterationsAcceptor
+        assert ! t.isIterationsEqualsOp
+        assert ! t.isIterationsNotEqualsOp
+        assert ! t.isIterationsRejector
+        assert ! t.isNameAcceptor
+        assert ! t.isNameRejector
+        assert t.isNameEqualsOp
+        assert ! t.isNameNotEqualsOp
+        assert ! t.isOwnerEqualsOp
+        assert ! t.isOwnerNotEqualsOp
+        assert ! t.isOwnerRejector
+        assert ! t.isSeedAcceptor
+        assert ! t.isSeedEqualsOp
+        assert ! t.isSeedNotEqualsOp
+        assert ! t.isSeedRejector
+        assert ! t.isStateEqualsOp
+        assert ! t.isStateNotEqualsOp
+        assert ! t.isStateRejector
+        assert ! t.isTagEqualsOp
+        assert ! t.isTagNotEqualsOp
+        assert ! t.isTagRejector
     }
 
     void testNameNotEqualTerm(){
@@ -305,48 +305,48 @@ class MatchTermTests extends GroovyTestCase {
         assert t.bangIndex != MatchTerm.MISSING
         assert t.colonIndex == MatchTerm.MISSING
 
-        assert t.isNameNotEqualsOp()
+        assert t.isNameNotEqualsOp
 
-        assert !t.isTagAcceptor()
-        assert !t.isStateAcceptor()
-        assert !t.isOwnerAcceptor()
+        assert !t.isTagAcceptor
+        assert !t.isStateAcceptor
+        assert !t.isOwnerAcceptor
 
-        assert ! t.isDbIdAcceptor()
-        assert ! t.isDbIdEqualsOp()
-        assert ! t.isDbIdNotEqualsOp()
-        assert ! t.isDbIdRejector()
-        assert ! t.isDealIdAcceptor()
-        assert ! t.isDealIdEqualsOp()
-        assert ! t.isDealIdNotEqualsOp()
-        assert ! t.isDealIdRejector()
-        assert ! t.isDealNameAcceptor()
-        assert ! t.isDealNameEqualsOp()
-        assert ! t.isDealNameNotEqualsOp()
-        assert ! t.isDealNameRejector()
-        assert ! t.isDealTagAcceptor()
-        assert ! t.isDealTagEqualsOp()
-        assert ! t.isDealTagNotEqualsOp()
-        assert ! t.isDealTagRejector()
-        assert ! t.isIterationsAcceptor()
-        assert ! t.isIterationsEqualsOp()
-        assert ! t.isIterationsNotEqualsOp()
-        assert ! t.isIterationsRejector()
-        assert ! t.isNameAcceptor()
-        assert ! t.isNameRejector()
-        assert ! t.isNameEqualsOp()
-        assert ! t.isOwnerEqualsOp()
-        assert ! t.isOwnerNotEqualsOp()
-        assert ! t.isOwnerRejector()
-        assert ! t.isSeedAcceptor()
-        assert ! t.isSeedEqualsOp()
-        assert ! t.isSeedNotEqualsOp()
-        assert ! t.isSeedRejector()
-        assert ! t.isStateEqualsOp()
-        assert ! t.isStateNotEqualsOp()
-        assert ! t.isStateRejector()
-        assert ! t.isTagEqualsOp()
-        assert ! t.isTagNotEqualsOp()
-        assert ! t.isTagRejector()
+        assert ! t.isDbIdAcceptor
+        assert ! t.isDbIdEqualsOp
+        assert ! t.isDbIdNotEqualsOp
+        assert ! t.isDbIdRejector
+        assert ! t.isDealIdAcceptor
+        assert ! t.isDealIdEqualsOp
+        assert ! t.isDealIdNotEqualsOp
+        assert ! t.isDealIdRejector
+        assert ! t.isDealNameAcceptor
+        assert ! t.isDealNameEqualsOp
+        assert ! t.isDealNameNotEqualsOp
+        assert ! t.isDealNameRejector
+        assert ! t.isDealTagAcceptor
+        assert ! t.isDealTagEqualsOp
+        assert ! t.isDealTagNotEqualsOp
+        assert ! t.isDealTagRejector
+        assert ! t.isIterationsAcceptor
+        assert ! t.isIterationsEqualsOp
+        assert ! t.isIterationsNotEqualsOp
+        assert ! t.isIterationsRejector
+        assert ! t.isNameAcceptor
+        assert ! t.isNameRejector
+        assert ! t.isNameEqualsOp
+        assert ! t.isOwnerEqualsOp
+        assert ! t.isOwnerNotEqualsOp
+        assert ! t.isOwnerRejector
+        assert ! t.isSeedAcceptor
+        assert ! t.isSeedEqualsOp
+        assert ! t.isSeedNotEqualsOp
+        assert ! t.isSeedRejector
+        assert ! t.isStateEqualsOp
+        assert ! t.isStateNotEqualsOp
+        assert ! t.isStateRejector
+        assert ! t.isTagEqualsOp
+        assert ! t.isTagNotEqualsOp
+        assert ! t.isTagRejector
     }
 
     void testBangInDifferentPlaces(){
