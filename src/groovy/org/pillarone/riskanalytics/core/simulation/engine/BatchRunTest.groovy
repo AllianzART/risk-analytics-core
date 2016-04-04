@@ -34,7 +34,7 @@ abstract class BatchRunTest extends ModelTest {
         batch.simulationProfileName = simulationProfile.name
         batch.parameterizations = [run.parameterization]
         assert batch.save()
-        batchRunService.runBatch(batch)
+        batchRunService.runBatch(batch, null)
         assert batch.executed
         assert listener.offered.size() == 1
         SimulationQueueEntry entry = listener.offered.first()

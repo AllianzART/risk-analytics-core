@@ -10,6 +10,7 @@ import org.pillarone.riskanalytics.core.simulation.item.*
 import org.pillarone.riskanalytics.core.simulation.item.parameter.ParameterHolder
 import org.pillarone.riskanalytics.core.simulationprofile.SimulationProfileService
 import org.pillarone.riskanalytics.core.user.UserManagement
+import org.springframework.util.StringUtils
 
 import java.text.SimpleDateFormat
 
@@ -33,20 +34,20 @@ class BatchRunService {
     private static
     final String BATCH_SIMNAME_STAMP_FORMAT = System.getProperty("BatchRunService.BATCH_SIMNAME_STAMP_FORMAT", "yyyyMMdd HH:mm:ss z")
 
-    void runBatch(Batch batch) {
+    void runBatch(Batch batch, String batchPrefixParam) {
         batch.load()
         if (!batch.executed) {
             log.info("Run batch: $batch")
-            offer(createSimulations(batch)) // bottleneck - loads each p14n first
+            offer(createSimulations(batch, batchPrefixParam)) // bottleneck - loads each p14n first
             batch.executed = true
             batch.save()
         }
     }
 
-    private List<Simulation> createSimulations(Batch batch) {
+    private List<Simulation> createSimulations(Batch batch, String batchPrefixParam) {
         Map<Class, SimulationProfile> byModelClass = simulationProfileService.getSimulationProfilesGroupedByModelClass(batch.simulationProfileName)
         batch.parameterizations.collect {
-            createSimulation(it, byModelClass[it.modelClass], batch)
+            createSimulation(it, byModelClass[it.modelClass], batch, batchPrefixParam)
         }
     }
 
@@ -98,9 +99,10 @@ class BatchRunService {
     }
 
     private
-    static Simulation createSimulation(Parameterization parameterization, SimulationProfile simulationProfile, Batch batch = null) {
+    static Simulation createSimulation(Parameterization parameterization, SimulationProfile simulationProfile, Batch batch = null, Object batchPrefixParam=null) {
         parameterization.load()
-        String name = getBatchPrefix() + " " +  parameterization.nameAndVersion + " " + new SimpleDateFormat(BATCH_SIMNAME_STAMP_FORMAT).format(new Date())
+        def prefix = StringUtils.isEmpty(batchPrefixParam)? getBatchPrefix() : batchPrefixParam
+        String name = prefix + " " +  parameterization.nameAndVersion + " " + new SimpleDateFormat(BATCH_SIMNAME_STAMP_FORMAT).format(new Date())
         Simulation simulation = new Simulation(name)
         simulation.modelClass = parameterization.modelClass
         simulation.parameterization = parameterization
