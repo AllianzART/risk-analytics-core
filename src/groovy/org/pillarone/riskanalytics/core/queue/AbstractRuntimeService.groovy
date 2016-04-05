@@ -20,13 +20,16 @@ abstract class AbstractRuntimeService<Q extends IQueueEntry, T extends IRuntimeI
     protected final Object lock = new Object()
     protected Timer timer
     protected MyQueueListener queueListener
+    protected MailNotificationQueueListener mailNotificationQueueListener
     @Delegate
     protected final RuntimeInfoEventSupport support = new RuntimeInfoEventSupport()
 
     @PostConstruct
     void initialize() {
         queueListener = new MyQueueListener()
+        mailNotificationQueueListener = new MailNotificationQueueListener<Q>()
         queueService.addQueueListener(queueListener)
+        queueService.addQueueListener(mailNotificationQueueListener)
         postConstruct()
     }
 
@@ -35,7 +38,9 @@ abstract class AbstractRuntimeService<Q extends IQueueEntry, T extends IRuntimeI
     void destroy() {
         preDestroy()
         queueService.removeQueueListener(queueListener)
+        queueService.removeQueueListener(mailNotificationQueueListener)
         queueListener = null
+        mailNotificationQueueListener = null
     }
 
     abstract void postConstruct()
