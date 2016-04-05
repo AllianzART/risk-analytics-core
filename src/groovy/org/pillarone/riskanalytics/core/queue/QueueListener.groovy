@@ -4,7 +4,7 @@ interface QueueListener<T extends IQueueEntry> {
 
     void starting(T entry)
 
-    void finished(UUID id)
+    void finished(T entry)
 
     void removed(UUID id)
 

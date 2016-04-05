@@ -113,9 +113,9 @@ abstract class AbstractRuntimeService<Q extends IQueueEntry, T extends IRuntimeI
         }
 
         @Override
-        void finished(UUID id) {
+        void finished(Q entry) {
             synchronized (lock) {
-                if (!running || running.id != id) {
+                if (!running || running.id != entry.getId()) {
                     throw new IllegalStateException("finished was called, but there is a different task running")
                 }
                 stopTimer()

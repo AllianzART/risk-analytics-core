@@ -135,6 +135,11 @@ environments {
 }
 
 grails {
+    mail {
+        host = "foo.bar.com"
+        props = ["mail.smtp.auth":"false"]
+    }
+
     views {
         'default' {
             codec = "none"

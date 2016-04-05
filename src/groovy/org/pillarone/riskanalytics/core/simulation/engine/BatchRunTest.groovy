@@ -67,7 +67,7 @@ abstract class BatchRunTest extends ModelTest {
         void starting(SimulationQueueEntry entry) {}
 
         @Override
-        void finished(UUID id) {
+        void finished(SimulationQueueEntry entry) {
             latch.countDown()
         }
 

@@ -121,7 +121,7 @@ abstract class AbstractQueueService<K, Q extends IQueueEntry<K>> implements IQue
             currentTask = null
             future.stopListenAsync(taskListener)
             handleEntry(entry)
-            support.notifyFinished(entry.id)
+            support.notifyFinished(entry)
         }
     }
 
