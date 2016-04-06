@@ -34,6 +34,7 @@ abstract class BatchRunTest extends ModelTest {
         batch.simulationProfileName = simulationProfile.name
         batch.parameterizations = [run.parameterization]
         assert batch.save()
+        batchRunService.offerOneByOne=false // makes it do it the old synchronous way
         batchRunService.runBatch(batch, null)
         assert batch.executed
         assert listener.offered.size() == 1
