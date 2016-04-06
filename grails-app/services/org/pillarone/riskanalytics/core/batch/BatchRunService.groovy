@@ -20,7 +20,7 @@ class BatchRunService {
     private static final Log log = LogFactory.getLog(BatchRunService)
 
     static private final String defaultBatchSimPrefix = 'batch'
-    private boolean offerOneByOne = Configuration.coreGetAndLogStringConfig("queueOfferingOneByOne", "true") == "true"
+    boolean offerOneByOne = Configuration.coreGetAndLogStringConfig("queueOfferingOneByOne", "true") == "true"
     // Each simulation name will begin with this prefix.. by default just 'batch'
     // But sometimes its useful to use something else eg for Version Migration batches where
     // sim names will appear in reports so it would help to distinguish comparison vs reference sims
