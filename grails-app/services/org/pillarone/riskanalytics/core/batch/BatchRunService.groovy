@@ -1,6 +1,6 @@
 package org.pillarone.riskanalytics.core.batch
 
-import grails.plugin.springsecurity.SpringSecurityService
+import grails.util.Holders
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 import org.pillarone.riskanalytics.core.output.SimulationRun
@@ -10,6 +10,7 @@ import org.pillarone.riskanalytics.core.simulation.item.*
 import org.pillarone.riskanalytics.core.simulation.item.parameter.ParameterHolder
 import org.pillarone.riskanalytics.core.simulationprofile.SimulationProfileService
 import org.pillarone.riskanalytics.core.user.UserManagement
+import org.pillarone.riskanalytics.core.util.Configuration
 import org.springframework.util.StringUtils
 
 import java.text.SimpleDateFormat
@@ -19,6 +20,7 @@ class BatchRunService {
     private static final Log log = LogFactory.getLog(BatchRunService)
 
     static private final String defaultBatchSimPrefix = 'batch'
+    private boolean offerOneByOne = Configuration.coreGetAndLogStringConfig("queueOfferingOneByOne", "true") == "true"
     // Each simulation name will begin with this prefix.. by default just 'batch'
     // But sometimes its useful to use something else eg for Version Migration batches where
     // sim names will appear in reports so it would help to distinguish comparison vs reference sims
@@ -29,7 +31,6 @@ class BatchRunService {
 
     SimulationQueueService simulationQueueService
     SimulationProfileService simulationProfileService
-    SpringSecurityService springSecurityService
 
     private static
     final String BATCH_SIMNAME_STAMP_FORMAT = System.getProperty("BatchRunService.BATCH_SIMNAME_STAMP_FORMAT", "yyyyMMdd HH:mm:ss z")
@@ -37,8 +38,19 @@ class BatchRunService {
     void runBatch(Batch batch, String batchPrefixParam) {
         batch.load()
         if (!batch.executed) {
-            log.info("Run batch: $batch")
-            offer(createSimulations(batch, batchPrefixParam)) // bottleneck - loads each p14n first
+            log.info("Run batch: $batch, offerOneByOne is set to '$offerOneByOne'")
+            if(offerOneByOne) {
+                def backgroundService = Holders.getGrailsApplication().getMainContext().getBean("backgroundService");
+                Map<Class, SimulationProfile> byModelClass = simulationProfileService.getSimulationProfilesGroupedByModelClass(batch.simulationProfileName)
+                batch.parameterizations.each { parametrization ->
+                    backgroundService.execute(parametrization.getNameAndVersion()) {
+                        Simulation simulation = createSimulation(parametrization, byModelClass[parametrization.modelClass], batch, batchPrefixParam)
+                        offer(simulation)
+                    }
+                }
+            } else {
+                offer(createSimulations(batch, batchPrefixParam))
+            }
             batch.executed = true
             batch.save()
         }
