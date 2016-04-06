@@ -85,6 +85,10 @@ abstract class AbstractRuntimeService<Q extends IQueueEntry, T extends IRuntimeI
         }, 1000, 1000);
     }
 
+    public void registerForNotificationOnQueueEntry(UUID uuid, String username) {
+        mailNotificationQueueListener.registerForNotification(uuid, username)
+    }
+
     protected class MyQueueListener implements QueueListener<Q> {
         @Override
         void starting(Q entry) {

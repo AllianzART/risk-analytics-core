@@ -4,8 +4,6 @@ import grails.plugin.mail.MailService
 import grails.util.Holders
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
-import org.pillarone.riskanalytics.core.batch.BatchRunService
-import org.pillarone.riskanalytics.core.simulation.SimulationState
 import org.pillarone.riskanalytics.core.simulation.engine.SimulationQueueTaskContext
 import org.pillarone.riskanalytics.core.upload.UploadQueueTaskContext
 import org.pillarone.riskanalytics.core.util.Configuration
@@ -33,7 +31,7 @@ class MailNotificationQueueListener<Q extends IQueueEntry> implements QueueListe
         }
         List<String> recipients = notificationMap.get(entry.getId())
 
-        if( recipients  ){
+        if(recipients){
             def context = entry?.context
             String state = "N/A"
             String entryName = "N/A"
@@ -53,38 +51,35 @@ class MailNotificationQueueListener<Q extends IQueueEntry> implements QueueListe
             // Got recipients
             String bodyText = "You wanted to be notified when $queueType '$entryName' was done.\nIt is now in state '$state'."
 
-            mailService.sendMail {
-                async true
-                to recipients.join(",")
-                from "srvartisan" + "@" + EMAIL_SUFFIX
-                cc DEFAULT_EMAIL_USERNAME + "@" + EMAIL_SUFFIX
-                subject subjectText
-                body bodyText
+            try {
+                LOG.info("Trying to send mail '${subjectText}'")
+                mailService.sendMail {
+                    async true
+                    to recipients.join(",")
+                    from "srvartisan" + "@" + EMAIL_SUFFIX
+                    cc DEFAULT_EMAIL_USERNAME + "@" + EMAIL_SUFFIX
+                    subject subjectText
+                    body bodyText
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to send mail '${subjectText}'", e)
             }
 
             LOG.info("Email on finished event (state: $state) to ") + recipients.toString()
-            // todo
-        } else {
-            LOG.info('nobody interested in this poor queue entry :-(')
         }
-
-
     }
 
     @Override
     void removed(UUID id) {
-        String strings = notificationMap.get(id)?.toString() ?: "nobody"
-        LOG.info("Email on remove event to " + strings)
-        //todo
         notificationMap.remove(id)
     }
 
     @Override
     void offered(Q entry) {
-        //TODO remove this
-        String username = entry.getContext().getUsername()
-        String emailAddress = (username ?: DEFAULT_EMAIL_USERNAME) + "@" + EMAIL_SUFFIX
-        registerForNotification(entry.getId(), emailAddress)
+        //Testing
+//        String username = entry.getContext().getUsername()
+//        String emailAddress = (username ?: DEFAULT_EMAIL_USERNAME) + "@" + EMAIL_SUFFIX
+//        registerForNotification(entry.getId(), emailAddress)
     }
 
     public void registerForNotification(@NotNull UUID queueEntryId, @NotNull String emailAddress) {
