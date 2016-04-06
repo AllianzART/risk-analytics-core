@@ -83,16 +83,16 @@ class SimulationRuntimeInfo implements Comparable<SimulationRuntimeInfo>, IRunti
         estimatedSimulationEnd
     }
 
-    String getEstimatedTime() {
+    Integer getEstimatedTime() {
         DateTime start = simulation?.start
         if (start) {
             DateTime end = simulation.end ?: estimatedSimulationEnd
             if (end) {
                 Period period = new Period(start, end, PeriodType.minutes());
-                return "${period.minutes} min"
+                return period.minutes
             }
         }
-        return 'n/a'
+        return null
     }
 
     List<Throwable> getSimulationErrors() {
