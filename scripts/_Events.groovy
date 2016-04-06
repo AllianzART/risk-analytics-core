@@ -34,6 +34,15 @@ eventCleanEnd = {
     }
 }
 
+eventTestCaseStart = { name ->
+    println '-' * 60
+    println "|$name : started"
+}
+
+eventTestCaseEnd = { name, err, out ->
+    println "\n|$name : finished"
+}
+
 private List<File> getReportFolders() {
     final def folders = buildConfig.reportFolders
     if (folders instanceof List) {
