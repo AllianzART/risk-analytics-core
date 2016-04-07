@@ -7,18 +7,24 @@ import org.apache.commons.logging.LogFactory
 import org.pillarone.riskanalytics.core.simulation.engine.SimulationQueueTaskContext
 import org.pillarone.riskanalytics.core.upload.UploadQueueTaskContext
 import org.pillarone.riskanalytics.core.util.Configuration
+import org.springframework.util.StringUtils
 
 import javax.validation.constraints.NotNull
+
+import static org.springframework.util.StringUtils.isEmpty
 
 /**
  * Notifies users via e-mail on queue events
  */
 class MailNotificationQueueListener<Q extends IQueueEntry> implements QueueListener<Q> {
     private static final Log LOG = LogFactory.getLog(MailNotificationQueueListener)
-    public static final String EMAIL_SUFFIX = Configuration.coreGetAndLogStringConfig( "email_orgAddress", "does_not_exist")
+
+    private final String DEFAULT_EMAIL_USERNAME = Configuration.coreGetAndLogStringConfig( "email_defaultUser", "" )
+    public  final String EMAIL_SUFFIX = Configuration.coreGetAndLogStringConfig( "email_orgAddress", "" )
+    private final String SENDER = "srvartisan" + "@" + EMAIL_SUFFIX;
+    private final boolean isMailServiceConfigured = !isEmpty(Holders.config.mail?.host)
+
     private Map<UUID, List<String>> notificationMap = new HashMap();
-    private static final String  DEFAULT_EMAIL_USERNAME = Configuration.coreGetAndLogStringConfig( "email_defaultUser", "does_not_exist")
-    private static final boolean mailServiceConfigured = (Holders?.config?.mail?.host != "foo.bar.com")
 
     @Override
     void starting(Q entry) {
@@ -26,46 +32,78 @@ class MailNotificationQueueListener<Q extends IQueueEntry> implements QueueListe
 
     @Override
     void finished(Q entry) {
-        if(!mailServiceConfigured){
+        if(!isMailServiceConfigured){
+            LOG.info("Queue item finished but no mail - service not configured ")
             return
         }
-        List<String> recipients = notificationMap.get(entry.getId())
+        if( isEmpty(EMAIL_SUFFIX) ){
+            LOG.warn("MailService is configured but no email_orgAddress supplied! Cannot send mails ")
+            return
+        }
+
+        if( isEmpty(DEFAULT_EMAIL_USERNAME) ){
+            LOG.warn("MailService is configured but no email_defaultUser supplied.. Cannot cc: mails to admin")
+        }
+
+        final List<String> recipients = notificationMap.get(entry.getId())
 
         if(recipients){
-            def context = entry?.context
-            String state = "N/A"
-            String entryName = "N/A"
-            String queueType = "Upload"
-            if (context instanceof SimulationQueueTaskContext) {
-                state = (context as SimulationQueueTaskContext).simulationTask?.simulationState?.name() // nb brackets needed!
-                entryName = (context as SimulationQueueTaskContext).simulationTask?.simulation?.name
-                queueType = "Simulation"
-            } else if (context instanceof UploadQueueTaskContext) {
-                state = (context as UploadQueueTaskContext).uploadState?.name() // nb brackets needed!
-                entryName = (context as UploadQueueTaskContext)?.configuration?.simulation?.name
-            } else {
-                LOG.warn("Unknown context implementation " + context.getClass().getSimpleName())
-            }
+            emailQueueEntryFinished(       // if @CompileStatic not used we get dynamic dispatch
+                entry?.context,
+                recipients.collect { it + "@" + EMAIL_SUFFIX },
+                isEmpty(DEFAULT_EMAIL_USERNAME) ? null : DEFAULT_EMAIL_USERNAME+"@"+EMAIL_SUFFIX // cc:
+            )
+        }
+    }
 
-            String subjectText = queueType + " Queue entry '${entryName}' is now ${state}"
-            // Got recipients
-            String bodyText = "You wanted to be notified when $queueType '$entryName' was done.\nIt is now in state '$state'."
+    void emailQueueEntryFinished( def context, List<String> recipients, String copyTo  ){
+        LOG.warn("Unknown context class ${context.getClass().getSimpleName()} - no mail sent to ${recipients}")
+    }
 
-            try {
-                LOG.info("Trying to send mail '${subjectText}'")
+    void emailQueueEntryFinished( SimulationQueueTaskContext context, List<String> recipients, String copyTo  ){
+        String state = context.simulationTask?.simulationState?.name() // nb brackets needed!
+        String entryName = context.simulationTask?.simulation?.name
+        sendMail(
+                SENDER, recipients, copyTo,
+                "Keeping you posted - sim ${state}",
+                "Sim '$entryName' is now '$state'."
+        )
+    }
+
+    void emailQueueEntryFinished( UploadQueueTaskContext context, List<String> recipients, String copyTo  ){
+        String state = context.uploadState?.name() // nb brackets needed!
+        String entryName = context.configuration?.simulation?.name
+        sendMail(
+                SENDER, recipients, copyTo,
+                "Keeping you posted - upload ${state}",
+                "Upload of '$entryName' is now '$state'."
+        )
+    }
+
+    void sendMail(String sender, List<String> recipients, String copyTo, String subjectText, String bodyText){
+        try {
+            String recipientsCSV = recipients.join(",")
+            LOG.info("Sending mail '${subjectText}' to $recipientsCSV (cc: $copyTo)")
+            if(isEmpty(copyTo) || recipients.contains(copyTo) ){
                 mailService.sendMail {
                     async true
-                    to recipients.join(",")
-                    from "srvartisan" + "@" + EMAIL_SUFFIX
-                    cc DEFAULT_EMAIL_USERNAME + "@" + EMAIL_SUFFIX
+                    to recipientsCSV
+                    from sender
                     subject subjectText
                     body bodyText
                 }
-            } catch (Exception e) {
-                LOG.warn("Failed to send mail '${subjectText}'", e)
+            }else{
+                mailService.sendMail {
+                    async true
+                    to recipientsCSV
+                    from sender
+                    cc copyTo
+                    subject subjectText
+                    body bodyText
+                }
             }
-
-            LOG.info("Email on finished event (state: $state) to ") + recipients.toString()
+        } catch (Exception e) {
+            LOG.warn("Failed to send mail '${subjectText}'", e)
         }
     }
 
