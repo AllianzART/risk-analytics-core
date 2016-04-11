@@ -41,9 +41,9 @@ class BatchRunService {
             log.info("Run batch: $batch, offerOneByOne is set to '$offerOneByOne'")
             if(offerOneByOne) {
                 def backgroundService = Holders.getGrailsApplication().getMainContext().getBean("backgroundService");
-                Map<Class, SimulationProfile> byModelClass = simulationProfileService.getSimulationProfilesGroupedByModelClass(batch.simulationProfileName)
-                batch.parameterizations.each { parametrization ->
-                    backgroundService.execute(parametrization.getNameAndVersion()) {
+                backgroundService.execute(batch.getNameAndVersion()) {
+                    Map<Class, SimulationProfile> byModelClass = simulationProfileService.getSimulationProfilesGroupedByModelClass(batch.simulationProfileName)
+                    batch.parameterizations.each { parametrization ->
                         Simulation simulation = createSimulation(parametrization, byModelClass[parametrization.modelClass], batch, batchPrefixParam)
                         offer(simulation)
                     }
