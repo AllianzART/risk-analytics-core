@@ -40,12 +40,14 @@ class BatchRunService {
         if (!batch.executed) {
             log.info("Run batch: $batch, offerOneByOne is set to '$offerOneByOne'")
             if(offerOneByOne) {
+
+                String username = UserManagement.currentUser?.username //this ust be taken outside the backgriund execution
                 def executorService = Holders.getGrailsApplication().getMainContext().getBean("executorService");
                 executorService.submit({
                     Map<Class, SimulationProfile> byModelClass = simulationProfileService.getSimulationProfilesGroupedByModelClass(batch.simulationProfileName)
                     batch.parameterizations.each { parametrization ->
                         Simulation simulation = createSimulation(parametrization, byModelClass[parametrization.modelClass], batch, batchPrefixParam)
-                        offer(simulation)
+                        offer(simulation, username)
                     }
                 } as Runnable)
             } else {
@@ -64,7 +66,7 @@ class BatchRunService {
     }
 
     void runBatchRunSimulation(Simulation simulationRun) {
-        offer(simulationRun)
+        offer(simulationRun, currentUsername)
     }
 
     private static boolean shouldRun(Simulation run) {
@@ -78,13 +80,13 @@ class BatchRunService {
         configurations.each { start(it) }
     }
 
-    private String getCurrentUsername() {
+    private static String getCurrentUsername() {
         UserManagement.currentUser?.username
     }
 
-    private void offer(Simulation simulation) {
+    private void offer(Simulation simulation, String username) {
         if (shouldRun(simulation)) {
-            start(new SimulationConfiguration(simulation, currentUsername))
+            start(new SimulationConfiguration(simulation, username))
         }
     }
 
