@@ -42,7 +42,7 @@ class BatchRunService {
             if(offerOneByOne) {
                 String username = UserManagement.currentUser?.username //this ust be taken outside the backgriund execution
                 def backgroundService = Holders.getGrailsApplication().getMainContext().getBean("backgroundService");
-                backgroundService.execute(batch.name){
+                backgroundService.execute(batch.getNameAndVersion()) {
                     Map<Class, SimulationProfile> byModelClass = simulationProfileService.getSimulationProfilesGroupedByModelClass(batch.simulationProfileName)
                     batch.parameterizations.each { parametrization ->
                         Simulation simulation = createSimulation(parametrization, byModelClass[parametrization.modelClass], batch, batchPrefixParam)
