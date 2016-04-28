@@ -17,9 +17,10 @@ class RemotingUtils {
         LOG.info("Timed " + tt + " ms: getBean(transactionService)");
         try {
             tt = System.currentTimeMillis()
-            List<TransactionInfo> txnList = transactionService.getAllTransactions()
+//            List<TransactionInfo> txnList = transactionService.getAllTransactions()
+            transactionService.ping()
             tt = System.currentTimeMillis() - tt
-            LOG.info("Timed " + tt + " ms: getAllTransactions()");
+            LOG.info("Timed " + tt + " ms: transactionService.ping()");
             return transactionService
         } catch (Throwable t) {
             tt = System.currentTimeMillis() - tt

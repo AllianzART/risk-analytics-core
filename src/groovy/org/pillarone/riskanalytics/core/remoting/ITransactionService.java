@@ -16,6 +16,6 @@ public interface ITransactionService {
      */
     List<TransactionInfo> getLinkableTransactions();
 
-
+    boolean ping();
 
 }

@@ -34,7 +34,8 @@ abstract class BatchRunTest extends ModelTest {
         batch.simulationProfileName = simulationProfile.name
         batch.parameterizations = [run.parameterization]
         assert batch.save()
-        batchRunService.runBatch(batch)
+        batchRunService.offerOneByOne=false // makes it do it the old synchronous way
+        batchRunService.runBatch(batch, null)
         assert batch.executed
         assert listener.offered.size() == 1
         SimulationQueueEntry entry = listener.offered.first()
@@ -67,7 +68,7 @@ abstract class BatchRunTest extends ModelTest {
         void starting(SimulationQueueEntry entry) {}
 
         @Override
-        void finished(UUID id) {
+        void finished(SimulationQueueEntry entry) {
             latch.countDown()
         }
 

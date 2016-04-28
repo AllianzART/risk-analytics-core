@@ -41,11 +41,11 @@ class QueueNotifyingSupport<Q extends IQueueEntry> {
         }
     }
 
-    void notifyFinished(UUID id) {
+    void notifyFinished(Q queueEntry) {
         synchronized (listeners) {
             listeners.each { QueueListener listener ->
                 doExceptionSave {
-                    listener.finished(id)
+                    listener.finished(queueEntry)
                 }
             }
         }

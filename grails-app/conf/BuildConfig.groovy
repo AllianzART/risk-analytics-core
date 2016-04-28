@@ -21,6 +21,8 @@ grails.project.dependency.resolution = {
     }
 
     plugins {
+        compile "org.grails.plugins:mail:1.0.7"
+
         runtime ":background-thread:1.3"
         runtime ":hibernate:3.6.10.3"
         runtime ":release:3.0.1", {

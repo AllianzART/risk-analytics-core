@@ -1,6 +1,6 @@
 package org.pillarone.riskanalytics.core.batch
 
-import grails.plugin.springsecurity.SpringSecurityService
+import grails.util.Holders
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 import org.pillarone.riskanalytics.core.output.SimulationRun
@@ -10,6 +10,8 @@ import org.pillarone.riskanalytics.core.simulation.item.*
 import org.pillarone.riskanalytics.core.simulation.item.parameter.ParameterHolder
 import org.pillarone.riskanalytics.core.simulationprofile.SimulationProfileService
 import org.pillarone.riskanalytics.core.user.UserManagement
+import org.pillarone.riskanalytics.core.util.Configuration
+import org.springframework.util.StringUtils
 
 import java.text.SimpleDateFormat
 
@@ -18,6 +20,7 @@ class BatchRunService {
     private static final Log log = LogFactory.getLog(BatchRunService)
 
     static private final String defaultBatchSimPrefix = 'batch'
+    boolean offerOneByOne = Configuration.coreGetAndLogStringConfig("queueOfferingOneByOne", "true") == "true"
     // Each simulation name will begin with this prefix.. by default just 'batch'
     // But sometimes its useful to use something else eg for Version Migration batches where
     // sim names will appear in reports so it would help to distinguish comparison vs reference sims
@@ -28,30 +31,41 @@ class BatchRunService {
 
     SimulationQueueService simulationQueueService
     SimulationProfileService simulationProfileService
-    SpringSecurityService springSecurityService
 
     private static
     final String BATCH_SIMNAME_STAMP_FORMAT = System.getProperty("BatchRunService.BATCH_SIMNAME_STAMP_FORMAT", "yyyyMMdd HH:mm:ss z")
 
-    void runBatch(Batch batch) {
+    void runBatch(Batch batch, String batchPrefixParam) {
         batch.load()
         if (!batch.executed) {
-            log.info("Run batch: $batch")
-            offer(createSimulations(batch)) // bottleneck - loads each p14n first
+            log.info("Run batch: $batch, offerOneByOne is set to '$offerOneByOne'")
+            if(offerOneByOne) {
+                String username = UserManagement.currentUser?.username //this ust be taken outside the backgriund execution
+                def backgroundService = Holders.getGrailsApplication().getMainContext().getBean("backgroundService");
+                backgroundService.execute(batch.getNameAndVersion()) {
+                    Map<Class, SimulationProfile> byModelClass = simulationProfileService.getSimulationProfilesGroupedByModelClass(batch.simulationProfileName)
+                    batch.parameterizations.each { parametrization ->
+                        Simulation simulation = createSimulation(parametrization, byModelClass[parametrization.modelClass], batch, batchPrefixParam)
+                        offer(simulation, username)
+                    }
+                }
+            } else {
+                offer(createSimulations(batch, batchPrefixParam))
+            }
             batch.executed = true
             batch.save()
         }
     }
 
-    private List<Simulation> createSimulations(Batch batch) {
+    private List<Simulation> createSimulations(Batch batch, String batchPrefixParam) {
         Map<Class, SimulationProfile> byModelClass = simulationProfileService.getSimulationProfilesGroupedByModelClass(batch.simulationProfileName)
         batch.parameterizations.collect {
-            createSimulation(it, byModelClass[it.modelClass], batch)
+            createSimulation(it, byModelClass[it.modelClass], batch, batchPrefixParam)
         }
     }
 
     void runBatchRunSimulation(Simulation simulationRun) {
-        offer(simulationRun)
+        offer(simulationRun, currentUsername)
     }
 
     private static boolean shouldRun(Simulation run) {
@@ -65,13 +79,13 @@ class BatchRunService {
         configurations.each { start(it) }
     }
 
-    private String getCurrentUsername() {
+    private static String getCurrentUsername() {
         UserManagement.currentUser?.username
     }
 
-    private void offer(Simulation simulation) {
+    private void offer(Simulation simulation, String username) {
         if (shouldRun(simulation)) {
-            start(new SimulationConfiguration(simulation, currentUsername))
+            start(new SimulationConfiguration(simulation, username))
         }
     }
 
@@ -98,9 +112,10 @@ class BatchRunService {
     }
 
     private
-    static Simulation createSimulation(Parameterization parameterization, SimulationProfile simulationProfile, Batch batch = null) {
+    static Simulation createSimulation(Parameterization parameterization, SimulationProfile simulationProfile, Batch batch = null, Object batchPrefixParam=null) {
         parameterization.load()
-        String name = getBatchPrefix() + " " +  parameterization.nameAndVersion + " " + new SimpleDateFormat(BATCH_SIMNAME_STAMP_FORMAT).format(new Date())
+        def prefix = StringUtils.isEmpty(batchPrefixParam)? getBatchPrefix() : batchPrefixParam
+        String name = prefix + " " +  parameterization.nameAndVersion + " " + new SimpleDateFormat(BATCH_SIMNAME_STAMP_FORMAT).format(new Date())
         Simulation simulation = new Simulation(name)
         simulation.modelClass = parameterization.modelClass
         simulation.parameterization = parameterization

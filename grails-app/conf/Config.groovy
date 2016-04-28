@@ -135,6 +135,11 @@ environments {
 }
 
 grails {
+    mail {
+        host = "" // AR-277 Have to supply this to enable 'keep me posted' functionality
+        props = ["mail.smtp.auth":"false"]
+    }
+
     views {
         'default' {
             codec = "none"

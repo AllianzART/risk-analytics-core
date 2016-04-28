@@ -20,13 +20,16 @@ abstract class AbstractRuntimeService<Q extends IQueueEntry, T extends IRuntimeI
     protected final Object lock = new Object()
     protected Timer timer
     protected MyQueueListener queueListener
+    protected MailNotificationQueueListener mailNotificationQueueListener
     @Delegate
     protected final RuntimeInfoEventSupport support = new RuntimeInfoEventSupport()
 
     @PostConstruct
     void initialize() {
         queueListener = new MyQueueListener()
+        mailNotificationQueueListener = new MailNotificationQueueListener<Q>()
         queueService.addQueueListener(queueListener)
+        queueService.addQueueListener(mailNotificationQueueListener)
         postConstruct()
     }
 
@@ -35,7 +38,9 @@ abstract class AbstractRuntimeService<Q extends IQueueEntry, T extends IRuntimeI
     void destroy() {
         preDestroy()
         queueService.removeQueueListener(queueListener)
+        queueService.removeQueueListener(mailNotificationQueueListener)
         queueListener = null
+        mailNotificationQueueListener = null
     }
 
     abstract void postConstruct()
@@ -80,6 +85,10 @@ abstract class AbstractRuntimeService<Q extends IQueueEntry, T extends IRuntimeI
         }, 1000, 1000);
     }
 
+    public void registerForNotificationOnQueueEntry(UUID uuid, String username) {
+        mailNotificationQueueListener.registerForNotification(uuid, username)
+    }
+
     protected class MyQueueListener implements QueueListener<Q> {
         @Override
         void starting(Q entry) {
@@ -108,9 +117,9 @@ abstract class AbstractRuntimeService<Q extends IQueueEntry, T extends IRuntimeI
         }
 
         @Override
-        void finished(UUID id) {
+        void finished(Q entry) {
             synchronized (lock) {
-                if (!running || running.id != id) {
+                if (!running || running.id != entry.getId()) {
                     throw new IllegalStateException("finished was called, but there is a different task running")
                 }
                 stopTimer()

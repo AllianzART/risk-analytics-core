@@ -37,5 +37,10 @@ class RemotingUtilsTest {
         List<TransactionInfo> getLinkableTransactions() {
             null
         }
+
+        @Override
+        boolean ping() {
+            return false
+        }
     }
 }
