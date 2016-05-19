@@ -82,7 +82,7 @@ class MailNotificationQueueListener<Q extends IQueueEntry> implements QueueListe
 
     void sendMail(String sender, List<String> recipients, String copyTo, String subjectText, String bodyText){
         try {
-            String recipientsCSV = recipients.join(",")
+            final String[] recipientsCSV = recipients.toArray()
             LOG.info("Sending mail '${subjectText}' to $recipientsCSV (cc: $copyTo)")
             if(isEmpty(copyTo) || recipients.contains(copyTo) ){
                 mailService.sendMail {
