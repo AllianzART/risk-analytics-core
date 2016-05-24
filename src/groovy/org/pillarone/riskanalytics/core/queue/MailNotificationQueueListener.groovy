@@ -5,9 +5,9 @@ import grails.util.Holders
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 import org.pillarone.riskanalytics.core.simulation.engine.SimulationQueueTaskContext
+import org.pillarone.riskanalytics.core.upload.UploadQueueEntry
 import org.pillarone.riskanalytics.core.upload.UploadQueueTaskContext
 import org.pillarone.riskanalytics.core.util.Configuration
-import org.springframework.util.StringUtils
 
 import javax.validation.constraints.NotNull
 
@@ -120,14 +120,31 @@ class MailNotificationQueueListener<Q extends IQueueEntry> implements QueueListe
 //        registerForNotification(entry.getId(), emailAddress)
     }
 
-    public void registerForNotification(@NotNull UUID queueEntryId, @NotNull String emailAddress) {
-        List<String> emailAddresses = notificationMap.get(queueEntryId)
-        if (emailAddresses != null) {
-            emailAddresses.add(emailAddress)
+    @Override
+    void offered(UploadQueueEntry entry) {
+        // Make uploads notify owner by default - nice idea Paolo
+        //
+        String username = entry.getContext().getUsername()
+        if( username ){
+            registerForNotification(entry.getId(), username)
         } else {
-            List<String> newEmailAddresses = new ArrayList<String>()
-            newEmailAddresses.add(emailAddress)
-            notificationMap.put(queueEntryId, newEmailAddresses)
+            LOG.warn("No username in UploadQueueEntry $entry - can't register for mail")
+        }
+    }
+
+    public void registerForNotification(@NotNull UUID queueEntryId, @NotNull String username) {
+        List<String> usernames = notificationMap.get(queueEntryId)
+
+        if (usernames == null) {
+            usernames = new ArrayList<String>()
+            notificationMap.put(queueEntryId, usernames)
+        }
+
+        if (usernames.contains(username)) {
+            LOG.info("$username already registered for mail notification")
+        } else {
+            LOG.info("Registering $username for mail notification")
+            usernames.add(username)
         }
     }
 
