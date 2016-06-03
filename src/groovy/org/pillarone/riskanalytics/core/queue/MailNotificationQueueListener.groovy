@@ -120,7 +120,6 @@ class MailNotificationQueueListener<Q extends IQueueEntry> implements QueueListe
 //        registerForNotification(entry.getId(), emailAddress)
     }
 
-    @Override
     void offered(UploadQueueEntry entry) {
         // Make uploads notify owner by default - nice idea Paolo
         //
