@@ -13,6 +13,25 @@ public class MathUtils {
 
     private static Log LOG = LogFactory.getLog(MathUtils.class);
 
+    // AR-294 move from art-models to core plugin so available for use everywhere
+    public static double relativeEpsilonFactor = 0.0000001d;
+
+    // My gut tells me ability to reconfigure tolerance epsilon is going to reduce grief one day.
+    //
+    static{
+        String relativeEpsilonFactorValue = System.getProperty("relativeEpsilonFactor", "0.0000001d");
+        if( relativeEpsilonFactorValue != "0.0000001d" ){
+            LOG.info("Recognised System property override: -DrelativeEpsilonFactor=" + relativeEpsilonFactorValue);
+            try{
+                relativeEpsilonFactor = Double.parseDouble(relativeEpsilonFactorValue);
+                LOG.info("relativeEpsilonFactor set to " + relativeEpsilonFactor);
+            } catch(NumberFormatException e){
+                LOG.warn("Defaulting to " + relativeEpsilonFactor + " as bad -DrelativeEpsilonFactor value: " +
+                        relativeEpsilonFactorValue + ", NumberFormatException: " + e.getMessage());
+            }
+        }
+    }
+
     private static ThreadLocal<F2NL607> RANDOM_NUMBER_GENERATOR_INSTANCE = new ThreadLocal<F2NL607>() {
 
         @Override
@@ -332,6 +351,43 @@ public class MathUtils {
 
     public static double minOfSortedValues(double[] sortedValues) {
         return sortedValues[0];
+    }
+
+    // AR-294 move from pc-cf to core plugin so available for use everywhere
+    // Moved out of art-models (AccountingUtils) to core plugin (MathUtils) 2017-01-18
+    //
+    // May not need this if the ExceptionUtils.getCheckValue() does the trick
+//
+    // Example of error we had earlier:
+    //
+    //    accounting result:  	-3.7351876 09634144E7
+    //    Nominal cashflow: 	-3.7351876 349999994E7
+    //    The difference is in the 9th significant figure.
+    //
+    //    Assuming a difference in 8th sig fig is okay ?
+    //    9.99999999
+    //    1 234567^----
+    //
+    //    That's 1 out of 99999999 or, for simplicity 1 in 100000000 or 1E-8
+    //
+    // For safety, choose default epsilon of 1E-7 * larger number
+    // Override via runtime switch -DrelativeEpsilonFactor=....
+    //
+    public static double getRelativeEpsilon(double lhs, double rhs){
+        final Double EPSILON = 0.0001d;
+
+        double larger = Math.max(
+                Math.abs(lhs),
+                Math.abs(rhs)
+        );
+
+        if( larger > 0.1 ){
+            return larger * relativeEpsilonFactor;
+        }
+
+        // For small numbers, how about trying the same approach as ExceptionUtils ?
+        //
+        return EPSILON;
     }
 
 }
